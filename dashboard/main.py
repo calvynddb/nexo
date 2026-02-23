@@ -1,5 +1,5 @@
 """
-Dashboard main frame and navigation for EduManage SIS.
+Dashboard main frame and navigation for nexo.
 """
 
 import customtkinter as ctk
@@ -18,7 +18,7 @@ from config import (
     BG_COLOR, PANEL_COLOR, ACCENT_COLOR, TEXT_MUTED, BORDER_COLOR, 
     FONT_MAIN, FONT_BOLD, COLOR_PALETTE, get_font, TEXT_PRIMARY, THEME_MANAGER
 )
-from ui import DepthCard, placeholder_image
+from ui import DepthCard, placeholder_image, get_icon, get_main_logo
 from views import StudentsView, ProgramsView, CollegesView
 from data import create_backups
 
@@ -31,17 +31,18 @@ class DashboardFrame(ctk.CTkFrame):
         self.controller = controller
         self.current_view = None
         
-        self.grid_rowconfigure(1, weight=1)
+        self.grid_rowconfigure(2, weight=1)
         self.grid_columnconfigure(0, weight=1)
         
         # Register as theme listener for dynamic updates
         THEME_MANAGER.register_listener(self.on_theme_change)
 
         self.create_topbar()
+        self.create_title_bar()
 
         # Main container with left content and right sidebar
         main_container = ctk.CTkFrame(self, fg_color="transparent")
-        main_container.grid(row=1, column=0, sticky="nsew", padx=0, pady=0)
+        main_container.grid(row=2, column=0, sticky="nsew", padx=0, pady=0)
         main_container.grid_rowconfigure(0, weight=1)
         main_container.grid_columnconfigure(0, weight=1)
         main_container.grid_columnconfigure(1, weight=0)
@@ -62,51 +63,44 @@ class DashboardFrame(ctk.CTkFrame):
         self.show_view(StudentsView)
 
     def create_topbar(self):
-        """Create unified top navigation bar with title, tabs, and controls."""
-        topbar = DepthCard(self, height=85, fg_color=PANEL_COLOR, corner_radius=0, 
+        """Create unified top navigation bar with logo, text, tabs, and controls."""
+        topbar = DepthCard(self, height=90, fg_color=PANEL_COLOR, corner_radius=0, 
                           border_width=2, border_color=BORDER_COLOR)
         topbar.grid(row=0, column=0, sticky="ew")
         topbar.grid_propagate(False)
         
-        # Main container with 3 sections
+        # Main container with three sections
         inner = ctk.CTkFrame(topbar, fg_color="transparent")
-        inner.grid(row=0, column=0, sticky="nsew", padx=15, pady=10)
+        inner.grid(row=0, column=0, sticky="nsew", padx=20, pady=12)
         topbar.grid_rowconfigure(0, weight=1)
         topbar.grid_columnconfigure(0, weight=1)
         inner.grid_columnconfigure(1, weight=1)  # Center expands
         
-        # LEFT SECTION: Title card with add button
-        left_card = DepthCard(inner, fg_color="#2a2a2e", corner_radius=8, 
-                     border_width=1, border_color=BORDER_COLOR, height=65)
-        left_card.grid(row=0, column=0, sticky="nsew", padx=(0, 15))
+        # LEFT SECTION: Logo and "nexo." text
+        left_section = ctk.CTkFrame(inner, fg_color="transparent")
+        left_section.grid(row=0, column=0, sticky="nsew", padx=(0, 30))
         
-        left_inner = ctk.CTkFrame(left_card, fg_color="transparent")
-        left_inner.grid(row=0, column=0, sticky="nsew", padx=12, pady=8)
-        left_inner.grid_columnconfigure(0, weight=1)
-        left_inner.grid_columnconfigure(1, weight=0)
-        left_inner.grid_rowconfigure(0, weight=1)
+        # Load main logo - bigger
+        logo_img = get_main_logo(size=70)
+        logo_label = ctk.CTkLabel(left_section, image=logo_img, text="")
+        logo_label.image = logo_img  # Keep reference to avoid GC
+        logo_label.pack(side="left", padx=(0, 15))
+        self._logo_img = logo_img  # Store as instance variable
         
-        self.title_label = ctk.CTkLabel(left_inner, text="Students", 
-                           font=get_font(20, True), 
-                           text_color=ACCENT_COLOR)
-        self.title_label.grid(row=0, column=0, sticky="ew")
-        
-        self.add_btn = ctk.CTkButton(left_inner, text="Add Entry", width=120, height=40,
-                        font=get_font(12, True),
-                        fg_color=ACCENT_COLOR, text_color="black",
-                        hover_color="#7C3AED", command=self.handle_add_entry)
-        self.add_btn.grid(row=0, column=1, sticky="e", padx=(15, 0))
+        # "nexo." text - same size, bold Century Gothic
+        nexo_label = ctk.CTkLabel(left_section, text="nexo.", font=get_font(32, True), text_color=ACCENT_COLOR)
+        nexo_label.pack(side="left")
         
         # CENTER SECTION: Centralized navigation tabs
         center_frame = ctk.CTkFrame(inner, fg_color="transparent")
-        center_frame.grid(row=0, column=1, sticky="ew", padx=15)
+        center_frame.grid(row=0, column=1, sticky="ew", padx=(0, 30))
         
         self.nav_btns = {}
         
         # Create small placeholder icons for tabs (kept as attributes to avoid GC)
-        self._tab_icon_students = placeholder_image(size=22, color=ACCENT_COLOR)
-        self._tab_icon_programs = placeholder_image(size=22, color="#a78bfa")
-        self._tab_icon_colleges = placeholder_image(size=22, color="#6366f1")
+        self._tab_icon_students = get_icon("users", size=28, fallback_color=ACCENT_COLOR)
+        self._tab_icon_programs = get_icon("books", size=28, fallback_color="#6d5a8a")
+        self._tab_icon_colleges = get_icon("building", size=28, fallback_color="#7a6a95")
 
         # Students tab
         self.nav_btns[StudentsView] = ctk.CTkButton(
@@ -156,24 +150,64 @@ class DashboardFrame(ctk.CTkFrame):
         )
         self.nav_btns[CollegesView].pack(side="left", padx=6, fill="both", expand=True)
         
-        # RIGHT SECTION: Search, Settings, Logout, Notifications
+        # RIGHT SECTION: Settings and Logout only
         right_frame = ctk.CTkFrame(inner, fg_color="transparent")
-        right_frame.grid(row=0, column=2, sticky="nsew", padx=(15, 0))
+        right_frame.grid(row=0, column=2, sticky="nsew")
         
-        self.search_entry = ctk.CTkEntry(right_frame, placeholder_text="Search...", width=220, 
-                border_width=2, border_color=ACCENT_COLOR, fg_color=PANEL_COLOR, 
-                corner_radius=20, font=get_font(11), height=40)
-        self.search_entry.pack(side="left", padx=5)
-        self.search_entry.bind("<KeyRelease>", self.handle_search_dynamic)
-        
-        # settings icon as placeholder image
-        self._settings_icon = placeholder_image(size=18, color=ACCENT_COLOR)
+        # settings icon - larger for better visibility
+        self._settings_icon = get_icon("settings", size=28, fallback_color=ACCENT_COLOR)
         ctk.CTkButton(right_frame, image=self._settings_icon, text="", fg_color="transparent", 
-                 hover_color=ACCENT_COLOR, width=40, height=40, command=self.open_settings).pack(side="left", padx=3)
+                 hover_color=ACCENT_COLOR, width=50, height=50, command=self.open_settings).pack(side="left", padx=3)
 
         ctk.CTkButton(right_frame, text="Logout", fg_color="transparent", 
                  text_color=TEXT_MUTED, hover_color=ACCENT_COLOR, font=get_font(11, True),
                  height=40, command=self.handle_logout).pack(side="left", padx=3)
+
+    def create_title_bar(self):
+        """Create title bar with page title on left and action buttons on right."""
+        title_bar = DepthCard(self, height=70, fg_color=PANEL_COLOR, corner_radius=0,
+                             border_width=1, border_color=BORDER_COLOR)
+        title_bar.grid(row=1, column=0, sticky="ew", padx=0, pady=(10, 0))
+        title_bar.grid_propagate(False)
+        
+        inner = ctk.CTkFrame(title_bar, fg_color="transparent")
+        inner.grid(row=0, column=0, sticky="nsew", padx=15, pady=12)
+        title_bar.grid_rowconfigure(0, weight=1)
+        title_bar.grid_columnconfigure(0, weight=1)
+        inner.grid_columnconfigure(0, weight=1)
+        inner.grid_columnconfigure(1, weight=0)
+        
+        # Left: Page Title
+        self.title_label = ctk.CTkLabel(inner, text="Students",
+                                       font=get_font(22, True),
+                                       text_color=ACCENT_COLOR)
+        self.title_label.grid(row=0, column=0, sticky="w")
+        
+        # Right: Button Container
+        button_container = ctk.CTkFrame(inner, fg_color="transparent")
+        button_container.grid(row=0, column=1, sticky="e", padx=(20, 0))
+        
+        # Import Button
+        self.import_btn = ctk.CTkButton(button_container, text="Import", width=100, height=45,
+                                       font=get_font(12, True),
+                                       fg_color=ACCENT_COLOR, text_color=TEXT_PRIMARY,
+                                       hover_color="#7C3AED", 
+                                       command=self.handle_import)
+        self.import_btn.pack(side="left", padx=(0, 10))
+        
+        # Add Entry Button
+        self.add_btn = ctk.CTkButton(button_container, text="Add Entry", width=100, height=45,
+                                    font=get_font(12, True),
+                                    fg_color=ACCENT_COLOR, text_color=TEXT_PRIMARY,
+                                    hover_color="#7C3AED",
+                                    command=self.handle_add_entry)
+        self.add_btn.pack(side="left", padx=(0, 0))
+
+    def handle_import(self):
+        """Handle import button - delegates to current view."""
+        if self.current_view and self.current_view in self.views:
+            if hasattr(self.views[self.current_view], 'import_data'):
+                self.views[self.current_view].import_data()
 
     def handle_add_entry(self):
         """Handle add entry button - delegates to current view."""
@@ -193,14 +227,13 @@ class DashboardFrame(ctk.CTkFrame):
         # Update active tab styling
         for vc, btn in self.nav_btns.items():
             if vc == view_class:
-                btn.configure(fg_color=ACCENT_COLOR, text_color="black")
+                btn.configure(fg_color=ACCENT_COLOR, text_color=TEXT_PRIMARY)
             else:
-                btn.configure(fg_color="transparent", text_color="#d1d1d1")
+                btn.configure(fg_color="transparent", text_color=TEXT_PRIMARY)
         
         # Update title and button label based on view
         self.update_title_card(view_class)
         
-        self.search_entry.delete(0, tk.END)
         self.views[view_class].refresh_table()
     
     def update_title_card(self, view_class):
@@ -226,7 +259,8 @@ class DashboardFrame(ctk.CTkFrame):
         """Open Settings window."""
         settings_window = ctk.CTkToplevel(self)
         settings_window.title("Settings")
-        settings_window.geometry("550x650")
+        settings_window.geometry("580x680")
+        settings_window.configure(fg_color=BG_COLOR)
         settings_window.attributes('-topmost', True)
         
         settings_window.update_idletasks()
@@ -234,15 +268,23 @@ class DashboardFrame(ctk.CTkFrame):
         y = (settings_window.winfo_screenheight() // 2) - (settings_window.winfo_height() // 2)
         settings_window.geometry(f"+{x}+{y}")
         
-        frame = ctk.CTkScrollableFrame(settings_window, fg_color="transparent")
-        frame.pack(fill="both", expand=True, padx=25, pady=25)
+        container = ctk.CTkFrame(settings_window, fg_color="transparent")
+        container.pack(fill="both", expand=True, padx=16, pady=16)
+        
+        from ui import DepthCard
+        settings_card = DepthCard(container, fg_color=PANEL_COLOR, corner_radius=12, border_width=2, border_color=BORDER_COLOR)
+        settings_card.pack(fill="both", expand=True)
+        frame = ctk.CTkScrollableFrame(settings_card, fg_color="transparent")
+        frame.pack(fill="both", expand=True, padx=16, pady=16)
         
         ctk.CTkLabel(frame, text="Settings", font=get_font(22, True)).pack(anchor="w", pady=(0, 25))
         
         # Appearance
         ctk.CTkLabel(frame, text="Appearance", font=get_font(15, True)).pack(anchor="w", pady=(15, 12))
         ctk.CTkLabel(frame, text="Theme", font=FONT_BOLD).pack(anchor="w", pady=(5, 4))
-        theme_combo = ctk.CTkOptionMenu(frame, values=["Dark", "Light"], height=40, font=FONT_MAIN)
+        theme_combo = ctk.CTkOptionMenu(frame, values=["Dark", "Light"], height=40, font=FONT_MAIN,
+                                       fg_color=ACCENT_COLOR, button_color=ACCENT_COLOR,
+                                       button_hover_color="#7C3AED", text_color=TEXT_PRIMARY)
         theme_combo.pack(fill="x", pady=(0, 8))
         # set current appearance
         try:
@@ -254,25 +296,34 @@ class DashboardFrame(ctk.CTkFrame):
             choice = theme_combo.get()
             self.apply_theme(choice)
         
-        ctk.CTkButton(frame, text="Apply Theme", height=36, command=_apply_theme).pack(fill="x", pady=(0, 10))
+        ctk.CTkButton(frame, text="Apply Theme", height=36, command=_apply_theme,
+                     fg_color=ACCENT_COLOR, text_color=TEXT_PRIMARY, hover_color="#7C3AED").pack(fill="x", pady=(0, 10))
         
         # System
         ctk.CTkLabel(frame, text="System", font=get_font(15, True)).pack(anchor="w", pady=(15, 12))
-        ctk.CTkCheckBox(frame, text="Enable Notifications", height=30, font=FONT_MAIN).pack(anchor="w", pady=6)
-        ctk.CTkCheckBox(frame, text="Auto Backup on Exit", height=30, font=FONT_MAIN).pack(anchor="w", pady=6)
-        ctk.CTkCheckBox(frame, text="Show Debug Info", height=30, font=FONT_MAIN).pack(anchor="w", pady=6)
+        ctk.CTkCheckBox(frame, text="Enable Notifications", height=30, font=FONT_MAIN,
+                       fg_color=ACCENT_COLOR, checkmark_color=BG_COLOR).pack(anchor="w", pady=6)
+        ctk.CTkCheckBox(frame, text="Auto Backup on Exit", height=30, font=FONT_MAIN,
+                       fg_color=ACCENT_COLOR, checkmark_color=BG_COLOR).pack(anchor="w", pady=6)
+        ctk.CTkCheckBox(frame, text="Show Debug Info", height=30, font=FONT_MAIN,
+                       fg_color=ACCENT_COLOR, checkmark_color=BG_COLOR).pack(anchor="w", pady=6)
         
         # Account
         ctk.CTkLabel(frame, text="Account", font=get_font(15, True)).pack(anchor="w", pady=(15, 12))
-        ctk.CTkButton(frame, text="Change Password", height=40, font=FONT_MAIN).pack(fill="x", pady=6)
-        ctk.CTkButton(frame, text="Manage Admins", height=40, font=FONT_MAIN).pack(fill="x", pady=6)
+        ctk.CTkButton(frame, text="Change Password", height=40, font=FONT_MAIN,
+                     fg_color=ACCENT_COLOR, text_color=TEXT_PRIMARY, hover_color="#7C3AED").pack(fill="x", pady=6)
+        ctk.CTkButton(frame, text="Manage Admins", height=40, font=FONT_MAIN,
+                     fg_color=ACCENT_COLOR, text_color=TEXT_PRIMARY, hover_color="#7C3AED").pack(fill="x", pady=6)
         
         # Data
         ctk.CTkLabel(frame, text="Data Management", font=get_font(15, True)).pack(anchor="w", pady=(15, 12))
         ctk.CTkButton(frame, text="Create Backup", height=40, font=FONT_MAIN,
+                     fg_color=ACCENT_COLOR, text_color=TEXT_PRIMARY, hover_color="#7C3AED",
                      command=lambda: messagebox.showinfo("Success", "Backup created successfully!")).pack(fill="x", pady=6)
-        ctk.CTkButton(frame, text="View Backups", height=40, font=FONT_MAIN).pack(fill="x", pady=6)
-        ctk.CTkButton(frame, text="Export Data", height=40, font=FONT_MAIN).pack(fill="x", pady=6)
+        ctk.CTkButton(frame, text="View Backups", height=40, font=FONT_MAIN,
+                     fg_color=ACCENT_COLOR, text_color=TEXT_PRIMARY, hover_color="#7C3AED").pack(fill="x", pady=6)
+        ctk.CTkButton(frame, text="Export Data", height=40, font=FONT_MAIN,
+                     fg_color=ACCENT_COLOR, text_color=TEXT_PRIMARY, hover_color="#7C3AED").pack(fill="x", pady=6)
     
     def handle_logout(self):
         """Handle logout."""

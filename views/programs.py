@@ -18,7 +18,7 @@ from config import (
     TEXT_MUTED, BORDER_COLOR, COLOR_PALETTE, TEXT_PRIMARY
 )
 from config import get_font
-from ui import DepthCard, SmartSearchEntry, setup_treeview_style, placeholder_image
+from ui import DepthCard, SmartSearchEntry, StyledComboBox, setup_treeview_style, placeholder_image, get_icon
 from data import validate_program, save_csv
 
 
@@ -29,6 +29,9 @@ class ProgramsView(ctk.CTkFrame):
         self.grid_rowconfigure(1, weight=1)
         self.grid_columnconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=0)
+        self.sort_column = None
+        self.sort_reverse = False
+        self.column_names = {}  # Store original column names
         self.setup_ui()
 
     def setup_ui(self):
@@ -38,9 +41,12 @@ class ProgramsView(ctk.CTkFrame):
         setup_treeview_style()
         cols = ("#", "Code", "Program Name", "College", "Students")
         self.tree = ttk.Treeview(table_container, columns=cols, show="headings", style="Treeview")
+        
+        # Store original column names
         for c in cols:
+            self.column_names[c] = c.upper()
             self.tree.heading(c, text=c.upper())
-            self.tree.column(c, anchor="center", stretch=True, width=100)
+            self.tree.column(c, anchor="center", stretch=False, width=100)
 
         self.tree.pack(fill="both", expand=True, padx=10, pady=10)
         self.tree.bind("<Button-1>", self.on_column_click)
@@ -48,29 +54,31 @@ class ProgramsView(ctk.CTkFrame):
         self.tree.bind("<Leave>", self._on_tree_leave)
         self.tree.bind("<ButtonRelease-1>", self.on_row_click)
         self.tree.tag_configure('odd', background=PANEL_COLOR)
-        self.tree.tag_configure('even', background="#1F1630")
-        self.tree.tag_configure('hover', background="#2A1F3D")
+        self.tree.tag_configure('even', background=PANEL_COLOR)
+        self.tree.tag_configure('hover', background="#6d5a8a", foreground="#ffffff")
 
         ctrl = ctk.CTkFrame(table_container, fg_color="transparent")
         ctrl.pack(fill="x", padx=10, pady=(6,12))
         self.current_page = 1
-        self.page_size = 25
+        self.page_size = 12
         self._last_page_items = []
+        self._last_hover = None
         self.table_container = table_container
         
-        self.prev_btn = ctk.CTkButton(ctrl, text="◀ Prev", width=80, command=lambda: self.change_page(-1))
+        self.prev_btn = ctk.CTkButton(ctrl, text="◀ Prev", width=80, fg_color=ACCENT_COLOR, hover_color="#6d5a8a", text_color="white", command=lambda: self.change_page(-1))
         self.prev_btn.pack(side="left", padx=(0,8))
         
         self.pagination_frame = ctk.CTkFrame(ctrl, fg_color="transparent")
         self.pagination_frame.pack(side="left", padx=8)
         self.page_buttons = []
         
-        self.next_btn = ctk.CTkButton(ctrl, text="Next ▶", width=80, command=lambda: self.change_page(1))
+        self.next_btn = ctk.CTkButton(ctrl, text="Next ▶", width=80, fg_color=ACCENT_COLOR, hover_color="#6d5a8a", text_color="white", command=lambda: self.change_page(1))
         self.next_btn.pack(side="left", padx=(8,0))
 
         def _on_table_config(e):
             total = max(e.width - 20, 200)
-            props = [0.06, 0.14, 0.6, 0.12, 0.08]
+            # Adjust column proportions to fit better
+            props = [0.08, 0.15, 0.50, 0.15, 0.12]
             for i, col in enumerate(cols):
                 self.tree.column(col, width=max(int(total * props[i]), 50))
             self._on_table_configure(e)
@@ -100,7 +108,11 @@ class ProgramsView(ctk.CTkFrame):
             ctk.CTkLabel(f, text=f"{val} Students", text_color=TEXT_MUTED).pack(side="right")
             bar = ctk.CTkProgressBar(top_card, progress_color=colors_list[i], fg_color="#2A1F3D", height=8)
             bar.pack(fill="x", padx=20, pady=(0, 15))
-            bar.set(min(val / 50, 1.0))
+            try:
+                from ui.utils import animate_progress
+                animate_progress(bar, min(val / 50, 1.0), duration=420)
+            except Exception:
+                bar.set(min(val / 50, 1.0))
 
         dist_card = DepthCard(right_panel, fg_color=PANEL_COLOR, corner_radius=15, border_width=2, border_color=BORDER_COLOR)
         dist_card.pack(fill="both", expand=True)
@@ -231,10 +243,13 @@ class ProgramsView(ctk.CTkFrame):
         self._render_page()
 
     def _on_table_configure(self, event):
+        # Get actual available height including padding around table
         available_height = self.table_container.winfo_height()
-        usable_height = available_height - 80
-        row_height = 25
-        new_page_size = max(5, usable_height // row_height)
+        # Account for: Treeview header (~30px) + padding top/bottom (~15+15px) + pagination controls (~50px)
+        reserved_height = 30 + 30 + 50
+        usable_height = max(available_height - reserved_height, 50)
+        row_height = 48
+        new_page_size = max(10, usable_height // row_height)
         
         if new_page_size != self.page_size:
             old_page = self.current_page
@@ -263,7 +278,11 @@ class ProgramsView(ctk.CTkFrame):
             ctk.CTkLabel(f, text=f"{val} Students", text_color=TEXT_MUTED).pack(side="right")
             bar = ctk.CTkProgressBar(top_card, progress_color=colors_list[i], fg_color="#2A1F3D", height=8)
             bar.pack(fill="x", padx=20, pady=(0, 15))
-            bar.set(min(val / 50, 1.0))
+            try:
+                from ui.utils import animate_progress
+                animate_progress(bar, min(val / 50, 1.0), duration=420)
+            except Exception:
+                bar.set(min(val / 50, 1.0))
 
         dist_card = DepthCard(self.right_panel, fg_color=PANEL_COLOR, corner_radius=15, border_width=2, border_color=BORDER_COLOR)
         dist_card.pack(fill="both", expand=True)
@@ -277,22 +296,20 @@ class ProgramsView(ctk.CTkFrame):
         if getattr(self, '_last_hover', None) == row:
             return
         if getattr(self, '_last_hover', None):
-            prev_tags = list(self.tree.item(self._last_hover, 'tags'))
-            if 'hover' in prev_tags:
-                prev_tags.remove('hover')
-                self.tree.item(self._last_hover, tags=prev_tags)
-        tags = list(self.tree.item(row, 'tags'))
-        if 'hover' not in tags:
-            tags.append('hover')
-            self.tree.item(row, tags=tags)
+            prev_row = self._last_hover
+            # Check if the previous row still exists
+            if prev_row in self.tree.get_children():
+                self.tree.item(prev_row, tags=())
+        # Set hover tag as the only tag for this row
+        self.tree.item(row, tags=('hover',))
         self._last_hover = row
 
     def _on_tree_leave(self, event):
         if getattr(self, '_last_hover', None):
-            prev_tags = list(self.tree.item(self._last_hover, 'tags'))
-            if 'hover' in prev_tags:
-                prev_tags.remove('hover')
-                self.tree.item(self._last_hover, tags=prev_tags)
+            prev_row = self._last_hover
+            # Check if the row still exists
+            if prev_row in self.tree.get_children():
+                self.tree.item(prev_row, tags=())
             self._last_hover = None
 
     def on_row_click(self, event):
@@ -300,28 +317,9 @@ class ProgramsView(ctk.CTkFrame):
         if region in ('cell', 'tree'):
             item = self.tree.identify_row(event.y)
             if item:
-                self._show_action_dialog(item)
-
-    def _show_action_dialog(self, item):
-        row_values = self.tree.item(item)['values']
-        dlg = ctk.CTkToplevel(self)
-        dlg.title("Row Actions")
-        dlg.geometry("340x160")
-        dlg.attributes('-topmost', True)
-        ctk.CTkLabel(dlg, text=str(row_values), wraplength=320).pack(pady=12, padx=8)
-        btn_frame = ctk.CTkFrame(dlg, fg_color="transparent")
-        btn_frame.pack(fill="x", padx=12, pady=8)
-        def _edit():
-            self.tree.selection_set(item)
-            dlg.destroy()
-            self.on_row_select(None)
-        def _delete():
-            self.tree.selection_set(item)
-            dlg.destroy()
-            self.delete_program()
-        ctk.CTkButton(btn_frame, text="Edit", command=_edit, fg_color=ACCENT_COLOR).pack(side="left", expand=True, fill="x", padx=(0,6))
-        ctk.CTkButton(btn_frame, text="Delete", command=_delete, fg_color="#c41e3a").pack(side="left", expand=True, fill="x", padx=(6,0))
-        ctk.CTkButton(dlg, text="Cancel", command=dlg.destroy).pack(pady=(6,0))
+                row_data = self.tree.item(item)['values']
+                prog_code = row_data[1]  # Program code
+                self._show_program_info(prog_code)
 
     def filter_table(self, query):
         rows = []
@@ -344,22 +342,40 @@ class ProgramsView(ctk.CTkFrame):
                 col_id = self.tree['columns'][idx]
             except Exception:
                 col_id = self.tree.heading(col, "text")
+            
+            # Remove arrow from previous sort column
+            if self.sort_column and self.sort_column != col_id:
+                self.tree.heading(self.sort_column, text=self.column_names.get(self.sort_column, self.sort_column))
+            
             if self.sort_column == col_id:
                 self.sort_reverse = not self.sort_reverse
             else:
                 self.sort_column = col_id
                 self.sort_reverse = False
+            
+            self.update_sort_arrow()
             self.sort_table()
+    
+    def update_sort_arrow(self):
+        """Update column heading to show sort arrow indicator."""
+        if not self.sort_column:
+            return
+        
+        # Get the original column name
+        col_name = self.column_names.get(self.sort_column, self.sort_column)
+        arrow = " ▼" if self.sort_reverse else " ▲"
+        self.tree.heading(self.sort_column, text=col_name + arrow)
     
     def sort_table(self):
         if not self.sort_column:
             return
         
-        items = [(self.tree.set(k, self.sort_column), k) for k in self.tree.get_children("")]
-        items.sort(key=lambda x: self.try_numeric(x[0]), reverse=self.sort_reverse)
+        # Sort the entire _last_page_items list
+        col_index = self.tree['columns'].index(self.sort_column) if self.sort_column in self.tree['columns'] else 0
+        self._last_page_items.sort(key=lambda x: self.try_numeric(str(x[col_index])), reverse=self.sort_reverse)
         
-        for idx, (val, k) in enumerate(items):
-            self.tree.move(k, "", idx)
+        # Re-render the current page
+        self._render_page()
     
     @staticmethod
     def try_numeric(val):
@@ -368,12 +384,95 @@ class ProgramsView(ctk.CTkFrame):
         except ValueError:
             return val
 
+    def _show_program_info(self, prog_code):
+        """Show program information in a window."""
+        program = next((p for p in self.controller.programs if p['code'] == prog_code), None)
+        if not program:
+            messagebox.showerror("Error", "Program not found")
+            return
+
+        profile_window = ctk.CTkToplevel(self)
+        profile_window.title(f"Program: {prog_code}")
+        profile_window.geometry("750x550")
+        profile_window.configure(fg_color=BG_COLOR)
+        profile_window.attributes('-topmost', True)
+
+        profile_window.update_idletasks()
+        x = (profile_window.winfo_screenwidth() // 2) - (profile_window.winfo_width() // 2)
+        y = (profile_window.winfo_screenheight() // 2) - (profile_window.winfo_height() // 2)
+        profile_window.geometry(f"+{x}+{y}")
+
+        container = ctk.CTkFrame(profile_window, fg_color="transparent")
+        container.pack(fill="both", expand=True, padx=20, pady=20)
+
+        # Header with code and name
+        header = DepthCard(container, fg_color=PANEL_COLOR, corner_radius=12, border_width=2, border_color=BORDER_COLOR, height=100)
+        header.pack(fill="x", pady=(0, 15))
+        header.pack_propagate(False)
+
+        avatar = ctk.CTkFrame(header, width=72, height=72, fg_color="#2d1f45", corner_radius=10)
+        avatar.place(x=20, y=14)
+        ctk.CTkLabel(avatar, text="📚", font=get_font(32)).pack()
+
+        ctk.CTkLabel(header, text=program.get('name', 'N/A'), font=get_font(16, True)).place(x=110, y=20)
+        ctk.CTkLabel(header, text=f"Code: {program.get('code', '')}", text_color=TEXT_MUTED, font=get_font(11)).place(x=110, y=50)
+
+        # Info card with scrollable content
+        info_card = DepthCard(container, fg_color=PANEL_COLOR, corner_radius=12, border_width=2, border_color=BORDER_COLOR)
+        info_card.pack(fill="both", expand=True, pady=(0, 15))
+
+        info_scroll = ctk.CTkScrollableFrame(info_card, fg_color="transparent")
+        info_scroll.pack(fill="both", expand=True, padx=15, pady=15)
+
+        # Information grid
+        def add_info_row(label, value):
+            row = ctk.CTkFrame(info_scroll, fg_color="transparent")
+            row.pack(fill="x", pady=8)
+            lbl = ctk.CTkLabel(row, text=label, font=get_font(14, True), text_color=TEXT_MUTED, width=100)
+            lbl.pack(side="left", anchor="w")
+            val = ctk.CTkLabel(row, text=value, font=get_font(15))
+            val.pack(side="left", padx=(20, 0), anchor="w")
+
+        add_info_row("Program Name:", program.get('name', 'N/A'))
+        add_info_row("Program Code:", program.get('code', 'N/A'))
+        add_info_row("College:", program.get('college', 'N/A'))
+        
+        student_count = len([s for s in self.controller.students if s.get('program') == prog_code])
+        add_info_row("Enrolled Students:", str(student_count))
+
+        # Action buttons
+        btn_frame = ctk.CTkFrame(container, fg_color="transparent")
+        btn_frame.pack(fill="x")
+
+        def _edit():
+            profile_window.destroy()
+            # Trigger the edit dialog by simulating a row selection
+            selection = self.tree.selection()
+            if not selection:
+                self.on_row_select(None)
+            else:
+                self.on_row_select(None)
+
+        def _delete():
+            if messagebox.askyesno("Confirm Delete", f"Delete program {prog_code}?"):
+                profile_window.destroy()
+                program_obj = next((p for p in self.controller.programs if p['code'] == prog_code), None)
+                if program_obj:
+                    self.controller.programs.remove(program_obj)
+                    save_csv('program', self.controller.programs)
+                    self.refresh_table()
+                    messagebox.showinfo("Success", "Program deleted successfully!")
+
+        ctk.CTkButton(btn_frame, text="Edit", command=_edit, fg_color=ACCENT_COLOR, text_color="white", font=FONT_BOLD, height=40).pack(side="left", fill="x", expand=True, padx=(0, 5))
+        ctk.CTkButton(btn_frame, text="Delete", command=_delete, fg_color="#c41e3a", text_color="white", font=FONT_BOLD, height=40).pack(side="left", fill="x", expand=True, padx=(5, 0))
+
     def add_program(self):
         modal = ctk.CTkToplevel(self)
         modal.title("Add Program")
         screen_height = modal.winfo_screenheight()
         height = min(400, int(screen_height * 0.6))
         modal.geometry(f"500x{height}")
+        modal.configure(fg_color=BG_COLOR)
         modal.attributes('-topmost', True)
         
         modal.update_idletasks()
@@ -396,27 +495,48 @@ class ProgramsView(ctk.CTkFrame):
         
         ctk.CTkLabel(form_frame, text="College", font=FONT_BOLD).pack(anchor="w")
         college_values = [c['code'] for c in self.controller.colleges]
-        if len(college_values) > 10:
-            college_widget = SmartSearchEntry(form_frame, college_values, placeholder="Select College", height=40)
-            if college_values:
-                college_widget.insert(0, college_values[0])
-        else:
-            college_widget = ctk.CTkOptionMenu(form_frame, values=college_values, height=40)
-            college_widget.set(college_values[0] if college_values else "")
+        college_widget = StyledComboBox(form_frame, college_values)
+        college_widget.set(college_values[0] if college_values else "")
         college_widget.pack(fill="x", pady=(0, 20))
         
-        def save():
+        def validate_form():
+            """Validate form inputs and return (is_valid, error_message)."""
             code = code_entry.get().strip()
             name = name_entry.get().strip()
             college = college_widget.get()
             
-            if not all([code, name, college]):
-                messagebox.showerror("Error", "Please fill all fields")
-                return
+            if not code:
+                return False, "Program Code is required"
+            
+            if not name:
+                return False, "Program Name is required"
+            
+            if not college:
+                return False, "College must be selected"
+            
+            if len(code) < 2:
+                return False, "Program Code must be at least 2 characters"
+            
+            if not code.isalnum():
+                return False, "Program Code must contain only letters and numbers"
+            
+            if not name.replace(" ", "").isalpha():
+                return False, "Program Name must contain only letters and spaces"
             
             if any(p['code'] == code for p in self.controller.programs):
-                messagebox.showerror("Error", "Program code already exists")
+                return False, "Program Code already exists"
+            
+            return True, ""
+        
+        def save():
+            is_valid, error_msg = validate_form()
+            if not is_valid:
+                messagebox.showerror("Validation Error", error_msg)
                 return
+            
+            code = code_entry.get().strip()
+            name = name_entry.get().strip().title()
+            college = college_widget.get()
 
             new_prog = {'code': code, 'name': name, 'college': college}
             ok, msg = validate_program(new_prog)
@@ -444,7 +564,7 @@ class ProgramsView(ctk.CTkFrame):
             messagebox.showinfo("Success", "Program added successfully!")
         
         ctk.CTkButton(form_frame, text="Save Program", command=save, height=40,
-                     fg_color=ACCENT_COLOR, text_color="black", font=FONT_BOLD).pack(fill="x")
+                     fg_color=ACCENT_COLOR, text_color=TEXT_PRIMARY, font=FONT_BOLD).pack(fill="x")
 
     def show_context_menu_program(self, event):
         item = self.tree.identify('item', event.x, event.y)
@@ -501,7 +621,8 @@ class ProgramsView(ctk.CTkFrame):
         
         edit_window = ctk.CTkToplevel(self)
         edit_window.title("Edit Program")
-        edit_window.geometry("450x350")
+        edit_window.geometry("480x380")
+        edit_window.configure(fg_color=BG_COLOR)
         edit_window.attributes('-topmost', True)
         
         edit_window.update_idletasks()
@@ -509,10 +630,23 @@ class ProgramsView(ctk.CTkFrame):
         y = (edit_window.winfo_screenheight() // 2) - (edit_window.winfo_height() // 2)
         edit_window.geometry(f"+{x}+{y}")
         
-        form_frame = ctk.CTkFrame(edit_window, fg_color="transparent")
-        form_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        container = ctk.CTkFrame(edit_window, fg_color="transparent")
+        container.pack(fill="both", expand=True, padx=16, pady=16)
         
-        ctk.CTkLabel(form_frame, text=f"Edit Program - {prog_code}", font=get_font(16, True)).pack(pady=(0, 20))
+        # Header card
+        header = DepthCard(container, fg_color=PANEL_COLOR, corner_radius=12, border_width=2, border_color=BORDER_COLOR, height=80)
+        header.pack(fill="x", pady=(0, 12))
+        header.pack_propagate(False)
+        ctk.CTkLabel(header, text=f"{prog_code}", font=get_font(16, True)).place(x=16, y=14)
+        ctk.CTkLabel(header, text="Program", font=get_font(11), text_color=TEXT_MUTED).place(x=16, y=44)
+        
+        # Form card
+        form_card = DepthCard(container, fg_color=PANEL_COLOR, corner_radius=12, border_width=2, border_color=BORDER_COLOR)
+        form_card.pack(fill="both", expand=True)
+        form_frame = ctk.CTkScrollableFrame(form_card, fg_color="transparent")
+        form_frame.pack(fill="both", expand=True, padx=12, pady=12)
+        
+        ctk.CTkLabel(form_frame, text="Edit Program Information", font=get_font(13, True)).pack(anchor="w", pady=(0, 12))
         
         ctk.CTkLabel(form_frame, text="Program Code", font=FONT_BOLD).pack(anchor="w")
         code_entry = ctk.CTkEntry(form_frame, height=40)
@@ -527,19 +661,36 @@ class ProgramsView(ctk.CTkFrame):
         
         ctk.CTkLabel(form_frame, text="College", font=FONT_BOLD).pack(anchor="w")
         college_values = [c['code'] for c in self.controller.colleges]
-        if len(college_values) > 10:
-            college_widget = SmartSearchEntry(form_frame, college_values, placeholder="Select College", height=40)
-            college_widget.insert(0, program['college'])
-        else:
-            college_widget = ctk.CTkOptionMenu(form_frame, values=college_values, height=40)
-            college_widget.set(program['college'])
+        college_widget = StyledComboBox(form_frame, college_values)
+        college_widget.set(program['college'])
         college_widget.pack(fill="x", pady=(0, 20))
         
         button_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
         button_frame.pack(fill="x")
         
+        def validate_form():
+            """Validate form inputs and return (is_valid, error_message)."""
+            name = name_entry.get().strip()
+            college = college_widget.get()
+            
+            if not name:
+                return False, "Program Name is required"
+            
+            if not college:
+                return False, "College must be selected"
+            
+            if not name.replace(" ", "").isalpha():
+                return False, "Program Name must contain only letters and spaces"
+            
+            return True, ""
+        
         def save():
-            program['name'] = name_entry.get().strip()
+            is_valid, error_msg = validate_form()
+            if not is_valid:
+                messagebox.showerror("Validation Error", error_msg)
+                return
+            
+            program['name'] = name_entry.get().strip().title()
             program['college'] = college_widget.get()
             ok, msg = validate_program(program)
             if not ok:
@@ -563,6 +714,89 @@ class ProgramsView(ctk.CTkFrame):
                 messagebox.showinfo("Success", "Program deleted successfully!")
         
         ctk.CTkButton(button_frame, text="Save Changes", command=save, height=40,
-                     fg_color=ACCENT_COLOR, text_color="black", font=FONT_BOLD).pack(side="left", fill="x", expand=True, padx=(0, 5))
+                     fg_color=ACCENT_COLOR, text_color=TEXT_PRIMARY, font=FONT_BOLD).pack(side="left", fill="x", expand=True, padx=(0, 5))
         ctk.CTkButton(button_frame, text="Delete", command=delete, height=40,
                      fg_color="#c41e3a", font=FONT_BOLD).pack(side="left", fill="x", expand=True, padx=(5, 0))
+
+    def import_data(self):
+        """Import programs from CSV file."""
+        from tkinter import filedialog
+        import csv
+        
+        file_path = filedialog.askopenfilename(
+            title="Select CSV file to import",
+            filetypes=[("CSV files", "*.csv"), ("All files", "*.*")]
+        )
+        
+        if not file_path:
+            return
+        
+        try:
+            imported_count = 0
+            error_count = 0
+            errors = []
+            
+            with open(file_path, 'r', encoding='utf-8') as f:
+                reader = csv.DictReader(f)
+                existing_codes = set()
+                
+                # Load existing codes
+                try:
+                    import csv as csv_module
+                    with open('programs.csv', 'r', encoding='utf-8') as existing:
+                        existing_reader = csv_module.DictReader(existing)
+                        for row in existing_reader:
+                            existing_codes.add(row['code'])
+                except:
+                    pass
+                
+                rows_to_add = []
+                for row_num, row in enumerate(reader, start=2):
+                    # Validate the row
+                    is_valid, error_msg = validate_program({
+                        'code': row.get('code', ''),
+                        'name': row.get('name', ''),
+                        'college': row.get('college', '')
+                    })
+                    
+                    if not is_valid:
+                        error_count += 1
+                        errors.append(f"Row {row_num}: {error_msg}")
+                        continue
+                    
+                    # Check if code already exists
+                    if row.get('code') in existing_codes:
+                        error_count += 1
+                        errors.append(f"Row {row_num}: Program code {row.get('code')} already exists")
+                        continue
+                    
+                    rows_to_add.append(row)
+                    existing_codes.add(row.get('code'))
+                    imported_count += 1
+                
+                # Append to CSV file
+                if rows_to_add:
+                    with open('programs.csv', 'a', newline='', encoding='utf-8') as f:
+                        writer = csv.DictWriter(f, fieldnames=['code', 'name', 'college'])
+                        for row in rows_to_add:
+                            writer.writerow({
+                                'code': row.get('code', ''),
+                                'name': row.get('name', ''),
+                                'college': row.get('college', '')
+                            })
+                    
+                    self.refresh_table()
+            
+            # Show results
+            if error_count == 0:
+                messagebox.showinfo("Import Success", f"Successfully imported {imported_count} programs!")
+            else:
+                error_msg = "\n".join(errors[:10])
+                if len(errors) > 10:
+                    error_msg += f"\n... and {len(errors) - 10} more errors"
+                messagebox.showwarning("Import Complete", 
+                    f"Imported {imported_count} programs.\n{error_count} errors:\n\n{error_msg}")
+        
+        except Exception as e:
+            messagebox.showerror("Import Error", f"Failed to import: {str(e)}")
+
