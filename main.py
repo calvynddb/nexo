@@ -19,6 +19,9 @@ class App(ctk.CTk):
         self.title("nexo")
         self.geometry(f"{WINDOW_WIDTH}x{WINDOW_HEIGHT}")
         
+        # Authentication state
+        self.logged_in = False
+        
         # Initialize data files
         init_files()
         
@@ -56,9 +59,44 @@ class App(ctk.CTk):
             # use place so we can animate sliding transitions between frames
             frame.place(relx=0, rely=0, relwidth=1, relheight=1)
 
-        # Show login frame first (without fade animation)
+        # Show dashboard frame first (without fade animation)
         self.current_frame = None
-        self.show_frame(LoginFrame, fade=False)
+        self.show_frame(DashboardFrame, fade=False)
+
+    def show_custom_dialog(self, title, message, dialog_type="info"):
+        """Show a custom styled dialog matching the app theme."""
+        from config import BG_COLOR, ACCENT_COLOR, TEXT_PRIMARY, TEXT_MUTED
+        from config import get_font
+        
+        dialog_window = ctk.CTkToplevel(self)
+        dialog_window.title(title)
+        dialog_window.geometry("450x200")
+        dialog_window.attributes('-topmost', True)
+        dialog_window.configure(fg_color=BG_COLOR)
+        
+        dialog_window.update_idletasks()
+        x = (dialog_window.winfo_screenwidth() // 2) - (dialog_window.winfo_width() // 2)
+        y = (dialog_window.winfo_screenheight() // 2) - (dialog_window.winfo_height() // 2)
+        dialog_window.geometry(f"+{x}+{y}")
+        
+        # Content frame
+        frame = ctk.CTkFrame(dialog_window, fg_color="transparent")
+        frame.pack(fill="both", expand=True, padx=30, pady=30)
+        
+        # Title
+        title_label = ctk.CTkLabel(frame, text=title, font=get_font(14, True), text_color=TEXT_PRIMARY)
+        title_label.pack(pady=(0, 15))
+        
+        # Message
+        msg_label = ctk.CTkLabel(frame, text=message, font=get_font(11), text_color=TEXT_MUTED, wraplength=350)
+        msg_label.pack(pady=(0, 25), fill="both", expand=True)
+        
+        # Button
+        ctk.CTkButton(frame, text="OK", fg_color=ACCENT_COLOR, text_color="white",
+                     hover_color="#7C3AED", font=get_font(11, True), 
+                     command=dialog_window.destroy).pack(fill="x")
+        
+        self.wait_window(dialog_window)
 
     def show_frame(self, cont, fade=True):
         """Show a specific frame."""

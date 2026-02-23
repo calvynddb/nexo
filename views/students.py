@@ -372,7 +372,7 @@ class StudentsView(ctk.CTkFrame):
         college_name = next((c['name'] for c in self.controller.colleges if c['code'] == next((p['college'] for p in self.controller.programs if p['code'] == student.get('program')), '')), 'N/A')
         add_info_row("College:", college_name)
 
-        # Action buttons
+        # Action buttons - only show if authenticated
         btn_frame = ctk.CTkFrame(container, fg_color="transparent")
         btn_frame.pack(fill="x")
 
@@ -385,11 +385,22 @@ class StudentsView(ctk.CTkFrame):
                 profile_window.destroy()
                 self._delete_student_by_id(student_id)
 
-        ctk.CTkButton(btn_frame, text="Edit", command=_edit, fg_color=ACCENT_COLOR, text_color="white", font=FONT_BOLD, height=40).pack(side="left", fill="x", expand=True, padx=(0, 5))
-        ctk.CTkButton(btn_frame, text="Delete", command=_delete, fg_color="#c41e3a", text_color="white", font=FONT_BOLD, height=40).pack(side="left", fill="x", expand=True, padx=(5, 0))
+        # Only show edit/delete buttons if user is logged in
+        if self.controller.logged_in:
+            ctk.CTkButton(btn_frame, text="Edit", command=_edit, fg_color=ACCENT_COLOR, text_color="white", font=FONT_BOLD, height=40).pack(side="left", fill="x", expand=True, padx=(0, 5))
+            ctk.CTkButton(btn_frame, text="Delete", command=_delete, fg_color="#c41e3a", text_color="white", font=FONT_BOLD, height=40).pack(side="left", fill="x", expand=True, padx=(5, 0))
+        else:
+            # Show message prompting login
+            login_msg = ctk.CTkLabel(btn_frame, text="🔒 Log in to edit or delete", font=get_font(11), text_color=TEXT_MUTED)
+            login_msg.pack(fill="x", pady=10)
 
     def _edit_student(self, student_id):
         """Edit student in a modal window."""
+        # Check authentication
+        if not self.controller.logged_in:
+            self.controller.show_custom_dialog("Access Denied", "You must log in to edit students.")
+            return
+        
         student = next((s for s in self.controller.students if s['id'] == student_id), None)
         if not student:
             messagebox.showerror("Error", "Student not found")
@@ -512,6 +523,11 @@ class StudentsView(ctk.CTkFrame):
 
     def _delete_student_by_id(self, student_id):
         """Delete a student by ID."""
+        # Check authentication
+        if not self.controller.logged_in:
+            self.controller.show_custom_dialog("Access Denied", "You must log in to delete students.")
+            return
+        
         student = next((s for s in self.controller.students if s['id'] == student_id), None)
         if not student:
             messagebox.showerror("Error", "Student not found")
@@ -528,6 +544,11 @@ class StudentsView(ctk.CTkFrame):
         pass
 
     def add_student(self):
+        # Check authentication
+        if not self.controller.logged_in:
+            self.controller.show_custom_dialog("Access Denied", "You must log in to add students.")
+            return
+        
         modal = ctk.CTkToplevel(self)
         modal.title("Add Student")
         screen_height = modal.winfo_screenheight()
@@ -656,6 +677,11 @@ class StudentsView(ctk.CTkFrame):
 
     def import_data(self):
         """Import students from CSV file."""
+        # Check authentication
+        if not self.controller.logged_in:
+            self.controller.show_custom_dialog("Access Denied", "You must log in to import students.")
+            return
+        
         from tkinter import filedialog
         import csv
         

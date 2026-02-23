@@ -382,7 +382,7 @@ class CollegesView(ctk.CTkFrame):
         student_count = len([s for s in self.controller.students for p in self.controller.programs if p.get('college') == college_code and s.get('program') == p.get('code')])
         add_info_row("Students:", str(student_count))
 
-        # Action buttons
+        # Action buttons - only show if authenticated
         btn_frame = ctk.CTkFrame(container, fg_color="transparent")
         btn_frame.pack(fill="x")
 
@@ -405,8 +405,14 @@ class CollegesView(ctk.CTkFrame):
                     self.refresh_table()
                     messagebox.showinfo("Success", "College deleted successfully!")
 
-        ctk.CTkButton(btn_frame, text="Edit", command=_edit, fg_color=ACCENT_COLOR, text_color="white", font=FONT_BOLD, height=40).pack(side="left", fill="x", expand=True, padx=(0, 5))
-        ctk.CTkButton(btn_frame, text="Delete", command=_delete, fg_color="#c41e3a", text_color="white", font=FONT_BOLD, height=40).pack(side="left", fill="x", expand=True, padx=(5, 0))
+        # Only show edit/delete buttons if user is logged in
+        if self.controller.logged_in:
+            ctk.CTkButton(btn_frame, text="Edit", command=_edit, fg_color=ACCENT_COLOR, text_color="white", font=FONT_BOLD, height=40).pack(side="left", fill="x", expand=True, padx=(0, 5))
+            ctk.CTkButton(btn_frame, text="Delete", command=_delete, fg_color="#c41e3a", text_color="white", font=FONT_BOLD, height=40).pack(side="left", fill="x", expand=True, padx=(5, 0))
+        else:
+            # Show message prompting login
+            login_msg = ctk.CTkLabel(btn_frame, text="🔒 Log in to edit or delete", font=get_font(11), text_color=TEXT_MUTED)
+            login_msg.pack(fill="x", pady=10)
 
     def filter_table(self, query):
         rows = []
@@ -470,6 +476,11 @@ class CollegesView(ctk.CTkFrame):
             return val
 
     def add_college(self):
+        # Check authentication
+        if not self.controller.logged_in:
+            self.controller.show_custom_dialog("Access Denied", "You must log in to add colleges.")
+            return
+        
         modal = ctk.CTkToplevel(self)
         modal.title("Add College")
         screen_height = modal.winfo_screenheight()
@@ -565,6 +576,11 @@ class CollegesView(ctk.CTkFrame):
             menu.grab_release()
     
     def delete_college(self):
+        # Check authentication
+        if not self.controller.logged_in:
+            self.controller.show_custom_dialog("Access Denied", "You must log in to delete colleges.")
+            return
+        
         selection = self.tree.selection()
         if not selection:
             return
