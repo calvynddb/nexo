@@ -51,9 +51,9 @@ class DashboardFrame(ctk.CTkFrame):
         main_container.grid_columnconfigure(0, weight=1)
         main_container.grid_columnconfigure(1, weight=0)
         
-        # Left content area
+        # Left content area - reduced top padding since title_bar has bottom padding
         self.content_area = ctk.CTkFrame(main_container, fg_color="transparent")
-        self.content_area.grid(row=0, column=0, sticky="nsew", padx=15, pady=15)
+        self.content_area.grid(row=0, column=0, sticky="nsew", padx=15, pady=(5, 15))
         self.content_area.grid_rowconfigure(0, weight=1)
         self.content_area.grid_columnconfigure(0, weight=1)
 
@@ -87,29 +87,35 @@ class DashboardFrame(ctk.CTkFrame):
         
         # LEFT SECTION: Logo and "nexo." text
         left_section = ctk.CTkFrame(inner, fg_color="transparent")
-        left_section.grid(row=0, column=0, sticky="nsew", padx=(0, 30))
+        left_section.grid(row=0, column=0, sticky="ew", padx=(0, 20))
+        left_section.grid_rowconfigure(0, weight=1)
+        left_section.grid_columnconfigure(0, weight=0)
+        left_section.grid_columnconfigure(1, weight=0)
         
         # Load main logo - bigger
-        logo_img = get_main_logo(size=70)
+        logo_img = get_main_logo(size=80)
         logo_label = ctk.CTkLabel(left_section, image=logo_img, text="")
         logo_label.image = logo_img  # Keep reference to avoid GC
-        logo_label.pack(side="left", padx=(0, 15))
+        logo_label.grid(row=0, column=0, padx=(0, 12))
         self._logo_img = logo_img  # Store as instance variable
         
-        # "nexo." text - same size, bold Century Gothic
-        nexo_label = ctk.CTkLabel(left_section, text="nexo.", font=get_font(32, True), text_color=ACCENT_COLOR)
-        nexo_label.pack(side="left")
+        # "nexo." text - bigger and bolder, centered vertically
+        nexo_label = ctk.CTkLabel(left_section, text="nexo.", font=get_font(36, True), text_color="#9b8ba9")
+        nexo_label.grid(row=0, column=1, sticky="ew")
         
-        # CENTER SECTION: Centralized navigation tabs
+        # CENTER SECTION: Centralized navigation tabs with fixed sizing
         center_frame = ctk.CTkFrame(inner, fg_color="transparent")
-        center_frame.grid(row=0, column=1, sticky="ew", padx=(0, 30))
+        center_frame.grid(row=0, column=1, sticky="ew", padx=0)
+        center_frame.grid_columnconfigure(0, weight=1)
+        center_frame.grid_columnconfigure(1, weight=1)
+        center_frame.grid_columnconfigure(2, weight=1)
         
         self.nav_btns = {}
         
         # Create small placeholder icons for tabs (kept as attributes to avoid GC)
-        self._tab_icon_students = get_icon("users", size=28, fallback_color=ACCENT_COLOR)
-        self._tab_icon_programs = get_icon("books", size=28, fallback_color="#6d5a8a")
-        self._tab_icon_colleges = get_icon("building", size=28, fallback_color="#7a6a95")
+        self._tab_icon_students = get_icon("users", size=20, fallback_color=ACCENT_COLOR)
+        self._tab_icon_programs = get_icon("books", size=20, fallback_color="#6d5a8a")
+        self._tab_icon_colleges = get_icon("building", size=20, fallback_color="#7a6a95")
 
         # Students tab
         self.nav_btns[StudentsView] = ctk.CTkButton(
@@ -120,12 +126,12 @@ class DashboardFrame(ctk.CTkFrame):
             fg_color="transparent",
             text_color=TEXT_PRIMARY,
             hover_color=ACCENT_COLOR,
-            font=get_font(13, True),
+            font=get_font(11, True),
             corner_radius=8,
             height=45,
             command=lambda: self.show_view(StudentsView)
         )
-        self.nav_btns[StudentsView].pack(side="left", padx=6, fill="both", expand=True)
+        self.nav_btns[StudentsView].grid(row=0, column=0, sticky="ew", padx=5)
 
         # Programs tab
         self.nav_btns[ProgramsView] = ctk.CTkButton(
@@ -136,12 +142,12 @@ class DashboardFrame(ctk.CTkFrame):
             fg_color="transparent",
             text_color=TEXT_PRIMARY,
             hover_color=ACCENT_COLOR,
-            font=get_font(13, True),
+            font=get_font(11, True),
             corner_radius=8,
             height=45,
             command=lambda: self.show_view(ProgramsView)
         )
-        self.nav_btns[ProgramsView].pack(side="left", padx=6, fill="both", expand=True)
+        self.nav_btns[ProgramsView].grid(row=0, column=1, sticky="ew", padx=5)
 
         # Colleges tab
         self.nav_btns[CollegesView] = ctk.CTkButton(
@@ -152,32 +158,32 @@ class DashboardFrame(ctk.CTkFrame):
             fg_color="transparent",
             text_color=TEXT_PRIMARY,
             hover_color=ACCENT_COLOR,
-            font=get_font(13, True),
+            font=get_font(11, True),
             corner_radius=8,
             height=45,
             command=lambda: self.show_view(CollegesView)
         )
-        self.nav_btns[CollegesView].pack(side="left", padx=6, fill="both", expand=True)
+        self.nav_btns[CollegesView].grid(row=0, column=2, sticky="ew", padx=5)
         
         # RIGHT SECTION: Login/Logout button
         right_frame = ctk.CTkFrame(inner, fg_color="transparent")
-        right_frame.grid(row=0, column=2, sticky="nsew")
+        right_frame.grid(row=0, column=2, sticky="nsew", padx=(20, 0))
         
-        # Login/Logout button
+        # Login/Logout button - bigger
         self.auth_btn = ctk.CTkButton(right_frame, text="Login", fg_color=ACCENT_COLOR, 
                                       text_color="white", hover_color="#7C3AED", 
-                                      font=get_font(11, True),
-                                      height=45, width=80, command=self.handle_login_click)
-        self.auth_btn.pack(side="left", padx=(0, 10))
+                                      font=get_font(12, True),
+                                      height=45, width=100, command=self.handle_login_click)
+        self.auth_btn.pack(side="left", padx=0)
         
         # Update auth button state
         self.update_auth_button()
 
     def create_title_bar(self):
         """Create title bar with page title on left and action buttons on right."""
-        # Wrapper with margin
+        # Wrapper with margin - increased top margin for equal spacing
         title_bar_wrapper = ctk.CTkFrame(self, fg_color="transparent")
-        title_bar_wrapper.grid(row=1, column=0, sticky="ew", padx=15, pady=(5, 10))
+        title_bar_wrapper.grid(row=1, column=0, sticky="ew", padx=15, pady=(10, 10))
         title_bar_wrapper.grid_columnconfigure(0, weight=1)
         
         title_bar = DepthCard(title_bar_wrapper, height=70, fg_color=PANEL_COLOR, corner_radius=15,
@@ -192,10 +198,10 @@ class DashboardFrame(ctk.CTkFrame):
         inner.grid_columnconfigure(0, weight=1)
         inner.grid_columnconfigure(1, weight=0)
         
-        # Left: Page Title - centered and bold
+        # Left: Page Title - bigger, bolder, lighter purple
         self.title_label = ctk.CTkLabel(inner, text="Students",
-                                       font=get_font(22, True),
-                                       text_color=ACCENT_COLOR,
+                                       font=get_font(28, True),
+                                       text_color="#9b8ba9",
                                        anchor="center")
         self.title_label.grid(row=0, column=0, sticky="ew", padx=20)
         

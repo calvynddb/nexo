@@ -42,29 +42,44 @@ class CollegesView(ctk.CTkFrame):
             self.column_names[c] = c.upper()
             self.tree.heading(c, text=c.upper())
             self.tree.column(c, anchor="center", stretch=False, width=120)
-        self.tree.pack(fill="both", expand=True, padx=15, pady=15)
+        self.tree.pack(fill="both", expand=True, padx=15, pady=(15, 12))
         self.tree.bind("<Button-1>", self.on_column_click)
         self.tree.bind("<Motion>", self._on_tree_motion)
         self.tree.bind("<Leave>", self._on_tree_leave)
         self.tree.bind("<ButtonRelease-1>", self.on_row_click)
-        self.tree.tag_configure('odd', background=PANEL_COLOR)
-        self.tree.tag_configure('even', background=PANEL_COLOR)
+        self.tree.tag_configure('odd', background="#1a1620")
+        self.tree.tag_configure('even', background="#0f0d12")
         self.tree.tag_configure('hover', background="#6d5a8a", foreground="#ffffff")
 
+        # Pagination controls - integrated layout
         ctrl = ctk.CTkFrame(table_container, fg_color="transparent")
-        ctrl.pack(fill="x", padx=15, pady=(6,12))
+        ctrl.pack(fill="x", padx=15, pady=(10,12))
         self.table_container = table_container
         self._last_hover = None
         
-        self.prev_btn = ctk.CTkButton(ctrl, text="◀ Prev", width=80, fg_color=ACCENT_COLOR, hover_color="#6d5a8a", text_color="white", command=lambda: self.change_page(-1))
+        # Left section: Previous button, pagination, and Next button together
+        left_ctrl = ctk.CTkFrame(ctrl, fg_color="transparent")
+        left_ctrl.pack(side="left")
+        
+        self.prev_btn = ctk.CTkButton(left_ctrl, text="◀ Prev", width=80, fg_color="#6d28d9", hover_color="#5b21b6", text_color="white", command=lambda: self.change_page(-1))
         self.prev_btn.pack(side="left", padx=(0,8))
         
-        self.pagination_frame = ctk.CTkFrame(ctrl, fg_color="transparent")
+        self.pagination_frame = ctk.CTkFrame(left_ctrl, fg_color="transparent")
         self.pagination_frame.pack(side="left", padx=8)
         self.page_buttons = []
         
-        self.next_btn = ctk.CTkButton(ctrl, text="Next ▶", width=80, fg_color=ACCENT_COLOR, hover_color="#6d5a8a", text_color="white", command=lambda: self.change_page(1))
+        # Next Button - right next to pagination
+        self.next_btn = ctk.CTkButton(left_ctrl, text="Next ▶", width=80, fg_color="#6d28d9", hover_color="#5b21b6", text_color="white", command=lambda: self.change_page(1))
         self.next_btn.pack(side="left", padx=(8,0))
+        
+        # Right section: Entry count only
+        right_ctrl = ctk.CTkFrame(ctrl, fg_color="transparent")
+        right_ctrl.pack(side="right")
+        
+        # Entry count label
+        self.entry_count_label = ctk.CTkLabel(right_ctrl, text="Showing 0 of 0 entries", 
+                                             font=get_font(11), text_color=TEXT_MUTED)
+        self.entry_count_label.pack(side="left", padx=0)
 
         # table_container configure binding will be set below after cards are created
 
@@ -146,9 +161,13 @@ class CollegesView(ctk.CTkFrame):
         self.current_page = min(self.current_page, total_pages)
         start = (self.current_page - 1) * per
         end = start + per
-        for idx, row in enumerate(self._last_page_items[start:end], start + 1):
+        for idx, row in enumerate(self._last_page_items[start:end]):
             tag = 'even' if idx % 2 == 0 else 'odd'
             self.tree.insert("", "end", values=row, tags=(tag,))
+        
+        # Update entry count
+        page_items = end - start
+        self.entry_count_label.configure(text=f"Showing {page_items} of {total} entries")
         
         for btn in self.page_buttons:
             btn.destroy()
@@ -187,9 +206,9 @@ class CollegesView(ctk.CTkFrame):
         # Get actual available height including padding around table
         available_height = self.table_container.winfo_height()
         # Account for: Treeview header (~30px) + padding top/bottom (~15+15px) + pagination controls (~50px)
-        reserved_height = 30 + 30 + 50
+        reserved_height = 30 + 25 + 50
         usable_height = max(available_height - reserved_height, 50)
-        row_height = 48
+        row_height = 32
         new_page_size = max(10, usable_height // row_height)
         
         if new_page_size != self.page_size:

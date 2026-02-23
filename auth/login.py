@@ -46,8 +46,6 @@ class LoginFrame(ctk.CTkFrame):
         self.username_entry = self.create_input(card, "Username", "👤  Enter your username")
         self.password_entry = self.create_input(card, "Password", "🔒  Enter your password", show="*")
 
-        ctk.CTkLabel(card, text="Forgot password?", font=get_font(11), text_color=ACCENT_COLOR, cursor="hand2").pack(anchor="e", padx=50)
-
         # Templated Login Function with enhanced button
         ctk.CTkButton(card, text="Sign In", font=get_font(13, True), fg_color=ACCENT_COLOR, text_color="white", hover_color="#6d5a8a", height=48, corner_radius=10, 
                       command=self.handle_login).pack(fill="x", padx=50, pady=(22, 12))
