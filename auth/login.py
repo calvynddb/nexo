@@ -73,6 +73,7 @@ class LoginFrame(ctk.CTkFrame):
         
         # Simple authentication (for demo)
         if user == "admin" and pwd == "admin":
+            self.controller.logged_in = True
             from dashboard import DashboardFrame
             self.controller.show_frame(DashboardFrame)
         else:

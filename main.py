@@ -63,7 +63,7 @@ class App(ctk.CTk):
         self.current_frame = None
         self.show_frame(DashboardFrame, fade=False)
 
-    def show_custom_dialog(self, title, message, dialog_type="info"):
+    def show_custom_dialog(self, title, message, dialog_type="info", callback=None):
         """Show a custom styled dialog matching the app theme."""
         from config import BG_COLOR, ACCENT_COLOR, TEXT_PRIMARY, TEXT_MUTED
         from config import get_font
@@ -91,10 +91,30 @@ class App(ctk.CTk):
         msg_label = ctk.CTkLabel(frame, text=message, font=get_font(11), text_color=TEXT_MUTED, wraplength=350)
         msg_label.pack(pady=(0, 25), fill="both", expand=True)
         
-        # Button
-        ctk.CTkButton(frame, text="OK", fg_color=ACCENT_COLOR, text_color="white",
-                     hover_color="#7C3AED", font=get_font(11, True), 
-                     command=dialog_window.destroy).pack(fill="x")
+        # Buttons
+        button_frame = ctk.CTkFrame(frame, fg_color="transparent")
+        button_frame.pack(fill="x")
+        
+        if dialog_type == "yesno":
+            def _yes():
+                if callback:
+                    callback(True)
+                dialog_window.destroy()
+            
+            def _no():
+                if callback:
+                    callback(False)
+                dialog_window.destroy()
+            
+            ctk.CTkButton(button_frame, text="Yes", fg_color=ACCENT_COLOR, text_color="white",
+                         hover_color="#7C3AED", font=get_font(11, True), command=_yes).pack(side="left", fill="x", expand=True, padx=(0, 8))
+            ctk.CTkButton(button_frame, text="No", fg_color="#555555", text_color="white",
+                         hover_color="#666666", font=get_font(11, True), command=_no).pack(side="left", fill="x", expand=True, padx=(8, 0))
+        else:
+            # Info or error dialog with single OK button
+            ctk.CTkButton(button_frame, text="OK", fg_color=ACCENT_COLOR, text_color="white",
+                         hover_color="#7C3AED", font=get_font(11, True), 
+                         command=dialog_window.destroy).pack(fill="x")
         
         self.wait_window(dialog_window)
 

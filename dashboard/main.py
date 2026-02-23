@@ -21,6 +21,7 @@ from config import (
 from ui import DepthCard, placeholder_image, get_icon, get_main_logo
 from views import StudentsView, ProgramsView, CollegesView
 from data import create_backups
+from auth import LoginFrame
 
 
 class DashboardFrame(ctk.CTkFrame):
@@ -36,6 +37,9 @@ class DashboardFrame(ctk.CTkFrame):
         
         # Register as theme listener for dynamic updates
         THEME_MANAGER.register_listener(self.on_theme_change)
+        
+        # Initialize logged_in state from controller
+        # (defaults to False for guest mode)
 
         self.create_topbar()
         self.create_title_bar()
@@ -64,9 +68,14 @@ class DashboardFrame(ctk.CTkFrame):
 
     def create_topbar(self):
         """Create unified top navigation bar with logo, text, tabs, and controls."""
-        topbar = DepthCard(self, height=90, fg_color=PANEL_COLOR, corner_radius=0, 
+        # Wrapper with margin
+        topbar_wrapper = ctk.CTkFrame(self, fg_color="transparent")
+        topbar_wrapper.grid(row=0, column=0, sticky="ew", padx=15, pady=(15, 5))
+        topbar_wrapper.grid_columnconfigure(0, weight=1)
+        
+        topbar = DepthCard(topbar_wrapper, height=90, fg_color=PANEL_COLOR, corner_radius=15, 
                           border_width=2, border_color=BORDER_COLOR)
-        topbar.grid(row=0, column=0, sticky="ew")
+        topbar.pack(fill="both", expand=True)
         topbar.grid_propagate(False)
         
         # Main container with three sections
@@ -150,24 +159,30 @@ class DashboardFrame(ctk.CTkFrame):
         )
         self.nav_btns[CollegesView].pack(side="left", padx=6, fill="both", expand=True)
         
-        # RIGHT SECTION: Settings and Logout only
+        # RIGHT SECTION: Login/Logout button
         right_frame = ctk.CTkFrame(inner, fg_color="transparent")
         right_frame.grid(row=0, column=2, sticky="nsew")
         
-        # settings icon - larger for better visibility
-        self._settings_icon = get_icon("settings", size=28, fallback_color=ACCENT_COLOR)
-        ctk.CTkButton(right_frame, image=self._settings_icon, text="", fg_color="transparent", 
-                 hover_color=ACCENT_COLOR, width=50, height=50, command=self.open_settings).pack(side="left", padx=3)
-
-        ctk.CTkButton(right_frame, text="Logout", fg_color="transparent", 
-                 text_color=TEXT_MUTED, hover_color=ACCENT_COLOR, font=get_font(11, True),
-                 height=40, command=self.handle_logout).pack(side="left", padx=3)
+        # Login/Logout button
+        self.auth_btn = ctk.CTkButton(right_frame, text="Login", fg_color=ACCENT_COLOR, 
+                                      text_color="white", hover_color="#7C3AED", 
+                                      font=get_font(11, True),
+                                      height=45, width=80, command=self.handle_login_click)
+        self.auth_btn.pack(side="left", padx=(0, 10))
+        
+        # Update auth button state
+        self.update_auth_button()
 
     def create_title_bar(self):
         """Create title bar with page title on left and action buttons on right."""
-        title_bar = DepthCard(self, height=70, fg_color=PANEL_COLOR, corner_radius=0,
+        # Wrapper with margin
+        title_bar_wrapper = ctk.CTkFrame(self, fg_color="transparent")
+        title_bar_wrapper.grid(row=1, column=0, sticky="ew", padx=15, pady=(5, 10))
+        title_bar_wrapper.grid_columnconfigure(0, weight=1)
+        
+        title_bar = DepthCard(title_bar_wrapper, height=70, fg_color=PANEL_COLOR, corner_radius=15,
                              border_width=1, border_color=BORDER_COLOR)
-        title_bar.grid(row=1, column=0, sticky="ew", padx=0, pady=(10, 0))
+        title_bar.pack(fill="both", expand=True)
         title_bar.grid_propagate(False)
         
         inner = ctk.CTkFrame(title_bar, fg_color="transparent")
@@ -177,11 +192,12 @@ class DashboardFrame(ctk.CTkFrame):
         inner.grid_columnconfigure(0, weight=1)
         inner.grid_columnconfigure(1, weight=0)
         
-        # Left: Page Title
+        # Left: Page Title - centered and bold
         self.title_label = ctk.CTkLabel(inner, text="Students",
                                        font=get_font(22, True),
-                                       text_color=ACCENT_COLOR)
-        self.title_label.grid(row=0, column=0, sticky="w")
+                                       text_color=ACCENT_COLOR,
+                                       anchor="center")
+        self.title_label.grid(row=0, column=0, sticky="ew", padx=20)
         
         # Right: Button Container
         button_container = ctk.CTkFrame(inner, fg_color="transparent")
@@ -202,15 +218,30 @@ class DashboardFrame(ctk.CTkFrame):
                                     hover_color="#7C3AED",
                                     command=self.handle_add_entry)
         self.add_btn.pack(side="left", padx=(0, 0))
+        
+        # Disable add button and import button initially (guest mode)
+        if not self.controller.logged_in:
+            self.add_btn.configure(state="disabled", fg_color="#555555")
+            self.import_btn.configure(state="disabled", fg_color="#555555")
 
     def handle_import(self):
         """Handle import button - delegates to current view."""
+        if not self.controller.logged_in:
+            self.controller.show_custom_dialog("Access Denied", "Please log in first to import data.")
+            self.handle_login_click()
+            return
+        
         if self.current_view and self.current_view in self.views:
             if hasattr(self.views[self.current_view], 'import_data'):
                 self.views[self.current_view].import_data()
 
     def handle_add_entry(self):
         """Handle add entry button - delegates to current view."""
+        if not self.controller.logged_in:
+            self.controller.show_custom_dialog("Access Denied", "Please log in first to add new entries.")
+            self.handle_login_click()
+            return
+        
         if self.current_view == StudentsView:
             self.views[StudentsView].add_student()
         elif self.current_view == ProgramsView:
@@ -327,9 +358,14 @@ class DashboardFrame(ctk.CTkFrame):
     
     def handle_logout(self):
         """Handle logout."""
-        if messagebox.askyesno("Logout", "Are you sure you want to logout?"):
+        self.controller.show_custom_dialog("Confirm Logout", "Are you sure you want to logout?", "yesno", 
+                                          callback=self._confirm_logout)
+    
+    def _confirm_logout(self, result):
+        """Confirm logout and transition to login screen."""
+        if result:
+            self.controller.logged_in = False
             create_backups()
-            from auth import LoginFrame
             self.controller.show_frame(LoginFrame)
     def apply_theme(self, choice: str):
         """Apply appearance mode safely and notify all listeners."""
@@ -348,10 +384,35 @@ class DashboardFrame(ctk.CTkFrame):
             import traceback
             traceback.print_exc()
             try:
-                messagebox.showerror("Theme Error", f"Could not apply theme '{choice}': {e}")
+                self.controller.show_custom_dialog("Theme Error", f"Could not apply theme '{choice}': {e}")
             except Exception:
                 pass
+
+    def handle_login_click(self):
+        """Handle login button click - transition to LoginFrame."""
+        self.controller.show_frame(LoginFrame)
+
+    def handle_logout(self):
+        """Handle logout."""
+        self.controller.show_custom_dialog("Confirm Logout", "Are you sure you want to logout?", "yesno", 
+                                          callback=self._confirm_logout)
     
+    def _confirm_logout(self, result):
+        """Callback for logout confirmation."""
+        if result:
+            create_backups()
+            self.controller.logged_in = False
+            self.controller.show_frame(LoginFrame)
+
+    def update_auth_button(self):
+        """Update the auth button based on login state."""
+        if self.controller.logged_in:
+            self.auth_btn.configure(text="Logout", fg_color="#c41e3a", hover_color="#a01830", 
+                                    command=self.handle_logout)
+        else:
+            self.auth_btn.configure(text="Login", fg_color=ACCENT_COLOR, hover_color="#7C3AED", 
+                                    command=self.handle_login_click)
+
     def on_theme_change(self, mode: str):
         """Callback when theme changes - refreshes all visible views."""
         try:
