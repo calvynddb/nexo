@@ -16,17 +16,11 @@
   <img src="https://img.shields.io/badge/license-MIT-yellow" alt="MIT License"/>
 </p>
 
----
+<p align="center">
+  <img src="screenshots/dashboard.png" alt="nexo dashboard" width="800"/>
+</p>
 
-## Screenshots
-
-| Login | Dashboard | Student Profile |
-|:---:|:---:|:---:|
-| ![Login](screenshots/login.png) | ![Dashboard](screenshots/dashboard.png) | ![Profile](screenshots/profile.png) |
-
-| Programs View | Colleges View | Settings |
-|:---:|:---:|:---:|
-| ![Programs](screenshots/programs.png) | ![Colleges](screenshots/colleges.png) | ![Settings](screenshots/settings.png) |
+> **Default login** — username: `admin` &nbsp;·&nbsp; password: `admin`
 
 ---
 
@@ -45,19 +39,11 @@
 
 ## Overview
 
-nexo is a desktop student information system built with Python and CustomTkinter. It manages students, academic programs, and colleges through a dark-themed GUI backed by CSV flat files — no database required.
+nexo is a desktop student information system built with Python and CustomTkinter. It manages students, academic programs, and colleges through a dark-themed GUI backed entirely by CSV flat files — no database setup required. The app is structured around a strict backend/frontend split: the `backend/` package handles all data access, validation, and business logic with zero UI dependencies, while `frontend_ui/` is responsible solely for presentation.
 
-**Core features:**
+The interface opens on a dashboard with three views — Students, Programs, and Colleges — each backed by paginated, sortable tables. Tables support real-time search that filters across all visible fields as you type, and clicking any column header toggles ascending/descending sort with numeric-aware ordering for year fields. Clicking a student row opens a detail profile popup with quick edit and delete actions. The Programs view also displays a donut chart (via matplotlib) showing enrollment distribution by college alongside a top-enrolled sidebar.
 
-- **CRUD** — create, read, update, and delete students, programs, and colleges. Forms open as themed modal popups with field validation; deletes require confirmation.
-- **Real-time search** — filters the active table as you type, matching across all visible fields.
-- **Sortable columns** — click any header to toggle ascending/descending order, with a numeric-aware sort for the year column.
-- **Pagination** — prev/next and numbered page buttons with a go-to-page input; page size adjusts dynamically to the window height.
-- **Student profiles** — click any row to open a detail popup with full info and quick edit/delete actions.
-- **Charts** — donut chart (matplotlib) showing program distribution by college, plus a top enrolled programs sidebar.
-- **Auth & guest mode** — admin login with SHA-256 hashed passwords. Guest mode grants full read-only access without logging in. New admins can be registered from the login screen.
-- **CSV import** — bulk-import records from external CSV files with per-row validation, error reporting, and duplicate detection.
-- **Portable executable** — packages into a single `.exe` via PyInstaller; CSV data files are seeded on first launch.
+All write operations — adding, editing, deleting, and bulk CSV import — are gated behind admin authentication. SHA-256 hashed credentials are stored in `users.csv`, and new administrators can be registered directly from the login screen. A guest mode is available at launch that grants full read-only access to all three views without requiring a login. The app packages into a single portable `.exe` via PyInstaller, seeding its CSV data files on first run.
 
 ---
 
@@ -105,7 +91,7 @@ pip install -r requirements.txt
 python main.py
 ```
 
-The app opens at **1400 × 900** in dark mode. CSV data files are created automatically on first launch.
+The app opens at **1400 × 940** in dark mode. CSV data files are created automatically on first launch.
 
 ---
 
@@ -115,7 +101,7 @@ The app opens at **1400 × 900** in dark mode. CSV data files are created automa
 |---|---|
 | `admin` | `admin` |
 
-> You can register additional administrators from the login screen.
+> Additional administrators can be registered via the gear icon in the dashboard header (visible when logged in).
 
 ---
 
@@ -242,13 +228,33 @@ The project follows a **layered architecture** with clear separation between dat
 
 ## Building the Executable
 
-A single-file `.exe` can be built with PyInstaller:
+### Prerequisites
+
+Before building, make sure the following are in place:
+
+- **Python 3.13** — Python 3.14 has a known NumPy DLL incompatibility with PyInstaller; stick to 3.13.
+- **PyInstaller** — install into your virtual environment:
+  ```bash
+  pip install pyinstaller
+  ```
+- **All runtime dependencies installed** — run `pip install -r requirements.txt` first if you haven't already.
+- **Assets present** — the `assets/` folder (logo + icons) must exist before building. The batch script assumes it is at the project root.
+- **PyQt5 must not be installed** — it conflicts with matplotlib's TkAgg backend. If it is present, uninstall it:
+  ```bash
+  pip uninstall PyQt5
+  ```
+
+### Build
+
+The simplest way is to use the included batch script:
 
 ```bash
-# Using the build script
 .\build_exe.bat
+```
 
-# Or manually
+Or run PyInstaller manually:
+
+```bash
 python -m PyInstaller --noconfirm --onefile --windowed ^
     --add-data "assets;assets" ^
     --add-data "config.py;." ^
@@ -261,7 +267,7 @@ python -m PyInstaller --noconfirm --onefile --windowed ^
     --name nexo main.py
 ```
 
-The output `dist/nexo.exe` (~38 MB) is fully portable. On first run it seeds CSV data files next to itself.
+The output at `dist/nexo.exe` (~38 MB) is fully self-contained. On first run it writes its CSV data files next to itself.
 
 ---
 

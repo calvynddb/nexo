@@ -76,17 +76,17 @@ class CollegesView(ctk.CTkFrame):
         goto_frame = ctk.CTkFrame(left_ctrl, fg_color="transparent")
         goto_frame.pack(side="left", padx=(15, 0))
         
-        ctk.CTkLabel(goto_frame, text="Go to:", font=get_font(10), text_color=TEXT_MUTED).pack(side="left", padx=(0, 5))
+        ctk.CTkLabel(goto_frame, text="Go to:", font=get_font(12), text_color=TEXT_MUTED).pack(side="left", padx=(0, 5))
         
         self.page_entry = ctk.CTkEntry(goto_frame, width=50, height=30, 
                                        fg_color="#2A1F3D", border_color=BORDER_COLOR,
-                                       text_color=TEXT_PRIMARY, font=get_font(10))
+                                       text_color=TEXT_PRIMARY, font=get_font(12))
         self.page_entry.pack(side="left", padx=(0, 5))
         self.page_entry.bind("<Return>", lambda e: self.go_to_page())
         
         self.go_btn = ctk.CTkButton(goto_frame, text="Go", width=40, height=30,
                                     fg_color="#6d28d9", hover_color="#5b21b6",
-                                    text_color="white", font=get_font(10, True),
+                                    text_color="white", font=get_font(12, True),
                                     command=self.go_to_page)
         self.go_btn.pack(side="left")
         
@@ -96,7 +96,7 @@ class CollegesView(ctk.CTkFrame):
         
         # entry count label
         self.entry_count_label = ctk.CTkLabel(right_ctrl, text="Showing 0 of 0 entries", 
-                                             font=get_font(11), text_color=TEXT_MUTED)
+                                             font=get_font(13), text_color=TEXT_MUTED)
         self.entry_count_label.pack(side="left", padx=0)
 
         # table_container configure binding will be set below after cards are created
@@ -104,7 +104,7 @@ class CollegesView(ctk.CTkFrame):
         right_panel = ctk.CTkFrame(self, width=280, fg_color="transparent")
         right_panel.grid(row=1, column=1, sticky="nsew")
         
-        ctk.CTkLabel(right_panel, text="DIRECTORY FACTS", font=get_font(11, True), text_color=TEXT_MUTED).pack(anchor="w", pady=(0, 10))
+        ctk.CTkLabel(right_panel, text="DIRECTORY FACTS", font=get_font(13, True), text_color=TEXT_MUTED).pack(anchor="w", pady=(0, 10))
 
         # use icons like Students view and keep references to avoid GC
         self._fact_img_students = get_icon("users", size=28, fallback_color=ACCENT_COLOR)
@@ -155,7 +155,7 @@ class CollegesView(ctk.CTkFrame):
         else:
             card.pack(fill="x", pady=8)
         card.pack_propagate(False)
-        ctk.CTkLabel(card, text=title, font=get_font(11, True), text_color=ACCENT_COLOR).place(x=15, y=14)
+        ctk.CTkLabel(card, text=title, font=get_font(13, True), text_color=ACCENT_COLOR).place(x=15, y=14)
         ctk.CTkLabel(card, text=val, font=get_font(22, True)).place(x=15, y=36)
         lbl = ctk.CTkLabel(card, image=icon_img, text="")
         lbl.image = icon_img
@@ -282,7 +282,7 @@ class CollegesView(ctk.CTkFrame):
         for w in self.right_panel.winfo_children():
             w.destroy()
 
-        ctk.CTkLabel(self.right_panel, text="DIRECTORY FACTS", font=get_font(11, True), text_color=TEXT_MUTED).pack(anchor="w", pady=(0, 10))
+        ctk.CTkLabel(self.right_panel, text="DIRECTORY FACTS", font=get_font(13, True), text_color=TEXT_MUTED).pack(anchor="w", pady=(0, 10))
 
         self._fact_img_students = get_icon("users", size=28, fallback_color=ACCENT_COLOR)
         self._fact_img_programs = get_icon("books", size=28, fallback_color="#8b5cf6")
@@ -341,7 +341,11 @@ class CollegesView(ctk.CTkFrame):
             prev_row = self._last_hover
             # check if the previous row still exists
             if prev_row in self.tree.get_children():
-                self.tree.item(prev_row, tags=())
+                items = self.tree.get_children()
+                if prev_row in items:
+                    idx = list(items).index(prev_row)
+                    tag = 'even' if idx % 2 == 0 else 'odd'
+                    self.tree.item(prev_row, tags=(tag,))
         # set hover tag as the only tag for this row
         self.tree.item(row, tags=('hover',))
         self._last_hover = row
@@ -394,7 +398,7 @@ class CollegesView(ctk.CTkFrame):
         info_frame.pack(fill="x", padx=12, pady=12)
         
         ctk.CTkLabel(info_frame, text=f"{row_values[2]}", font=get_font(14, True)).pack(anchor="w")
-        ctk.CTkLabel(info_frame, text=f"Code: {row_values[1]}", font=get_font(11), text_color=TEXT_MUTED).pack(anchor="w")
+        ctk.CTkLabel(info_frame, text=f"Code: {row_values[1]}", font=get_font(13), text_color=TEXT_MUTED).pack(anchor="w")
         
         # button frame
         btn_frame = ctk.CTkFrame(container, fg_color="transparent")
@@ -448,11 +452,15 @@ class CollegesView(ctk.CTkFrame):
         text_frame = ctk.CTkFrame(header_inner, fg_color="transparent")
         text_frame.pack(side="left", fill="x", expand=True)
         ctk.CTkLabel(text_frame, text=college.get('name', 'N/A'), font=get_font(16, True), wraplength=550, justify="left", anchor="w").pack(fill="x", anchor="w")
-        ctk.CTkLabel(text_frame, text=f"Code: {college.get('code', '')}", text_color=TEXT_MUTED, font=get_font(11), anchor="w").pack(fill="x", anchor="w", pady=(4, 0))
+        ctk.CTkLabel(text_frame, text=f"Code: {college.get('code', '')}", text_color=TEXT_MUTED, font=get_font(13), anchor="w").pack(fill="x", anchor="w", pady=(4, 0))
+
+        # action buttons frame - packed with side="bottom" first to guarantee visibility
+        btn_frame = ctk.CTkFrame(container, fg_color="transparent")
+        btn_frame.pack(side="bottom", fill="x", pady=(15, 0))
 
         # info card with scrollable content
         info_card = DepthCard(container, fg_color=PANEL_COLOR, corner_radius=12, border_width=2, border_color=BORDER_COLOR)
-        info_card.pack(fill="both", expand=True, pady=(0, 15))
+        info_card.pack(fill="both", expand=True)
 
         info_scroll = ctk.CTkScrollableFrame(info_card, fg_color="transparent")
         info_scroll.pack(fill="both", expand=True, padx=15, pady=15)
@@ -476,8 +484,6 @@ class CollegesView(ctk.CTkFrame):
         add_info_row("Students:", str(student_count))
 
         # action buttons - only show if authenticated
-        btn_frame = ctk.CTkFrame(container, fg_color="transparent")
-        btn_frame.pack(fill="x")
 
         def _edit():
             profile_window.destroy()
@@ -514,7 +520,7 @@ class CollegesView(ctk.CTkFrame):
             ctk.CTkButton(btn_frame, text="Delete", command=_delete, fg_color="#c41e3a", text_color="white", font=FONT_BOLD, height=40).pack(side="left", fill="x", expand=True, padx=(5, 0))
         else:
             # show message prompting login
-            login_msg = ctk.CTkLabel(btn_frame, text="🔒 Log in to edit or delete", font=get_font(11), text_color=TEXT_MUTED)
+            login_msg = ctk.CTkLabel(btn_frame, text="🔒 Log in to edit or delete", font=get_font(13), text_color=TEXT_MUTED)
             login_msg.pack(fill="x", pady=10)
 
     def filter_table(self, query):
@@ -761,7 +767,7 @@ class CollegesView(ctk.CTkFrame):
         header.pack(fill="x", pady=(0, 12))
         header.pack_propagate(False)
         ctk.CTkLabel(header, text=f"{college_code}", font=get_font(16, True)).place(x=16, y=14)
-        ctk.CTkLabel(header, text="College", font=get_font(11), text_color=TEXT_MUTED).place(x=16, y=44)
+        ctk.CTkLabel(header, text="College", font=get_font(13), text_color=TEXT_MUTED).place(x=16, y=44)
         
         # form card
         form_card = DepthCard(container, fg_color=PANEL_COLOR, corner_radius=12, border_width=2, border_color=BORDER_COLOR)

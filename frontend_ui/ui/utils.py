@@ -30,9 +30,10 @@ def show_dialog(parent, title, message, dialog_type="info", callback=None):
     dialog_window.grab_set()
     dialog_window.focus_force()
 
-    # size based on message length
+    # size based on message length; yesno dialogs need extra room for two buttons
     msg_len = len(message)
-    height = 200 if msg_len < 100 else 250 if msg_len < 200 else 300
+    base = 250 if dialog_type == "yesno" else 220
+    height = base if msg_len < 100 else base + 60 if msg_len < 200 else base + 120
     dialog_window.geometry(f"450x{height}")
 
     dialog_window.update_idletasks()
@@ -59,7 +60,7 @@ def show_dialog(parent, title, message, dialog_type="info", callback=None):
     frame.pack(fill="both", expand=True, padx=30, pady=30)
 
     # type badge
-    badge = ctk.CTkLabel(frame, text=icon_text, font=get_font(9, True),
+    badge = ctk.CTkLabel(frame, text=icon_text, font=get_font(11, True),
                          text_color="white", fg_color=accent, corner_radius=6,
                          width=70, height=22)
     badge.pack(pady=(0, 10))
@@ -68,7 +69,7 @@ def show_dialog(parent, title, message, dialog_type="info", callback=None):
     ctk.CTkLabel(frame, text=title, font=get_font(14, True), text_color=TEXT_PRIMARY).pack(pady=(0, 10))
 
     # message label
-    ctk.CTkLabel(frame, text=message, font=get_font(11), text_color=TEXT_MUTED,
+    ctk.CTkLabel(frame, text=message, font=get_font(13), text_color=TEXT_MUTED,
                  wraplength=380).pack(pady=(0, 20), fill="both", expand=True)
 
     # buttons
@@ -89,14 +90,14 @@ def show_dialog(parent, title, message, dialog_type="info", callback=None):
             dialog_window.destroy()
 
         ctk.CTkButton(button_frame, text="Yes", fg_color=accent, text_color="white",
-                      hover_color="#7C3AED", font=get_font(11, True), height=36,
+                      hover_color="#7C3AED", font=get_font(13, True), height=36,
                       command=_yes).pack(side="left", fill="x", expand=True, padx=(0, 8))
         ctk.CTkButton(button_frame, text="No", fg_color="#3a3a3f", text_color="white",
-                      hover_color="#4a4a4f", font=get_font(11, True), height=36,
+                      hover_color="#4a4a4f", font=get_font(13, True), height=36,
                       command=_no).pack(side="left", fill="x", expand=True, padx=(8, 0))
     else:
         ctk.CTkButton(button_frame, text="OK", fg_color=accent, text_color="white",
-                      hover_color="#7C3AED", font=get_font(11, True), height=36,
+                      hover_color="#7C3AED", font=get_font(13, True), height=36,
                       command=dialog_window.destroy).pack(fill="x")
 
     dialog_window.protocol("WM_DELETE_WINDOW",
@@ -307,4 +308,48 @@ def animate_progress(bar, target, duration=400):
 def apply_button_hover(root, hover_scale=1.03):
     """Placeholder function - no longer needed (button sizing conflicts disabled)."""
     pass
+
+
+def fade_transition(app, new_frame, steps=12, on_shown=None):
+    """Animate a window alpha fade-out/fade-in while swapping to new_frame.
+
+    Lifts new_frame at the midpoint (while the window is fully transparent),
+    then fades back in. Calls on_shown() once the transition completes.
+    """
+    def _swap():
+        new_frame.lift()
+        try:
+            apply_button_hover(new_frame)
+        except Exception:
+            pass
+
+    def _call_shown():
+        if on_shown:
+            try:
+                on_shown()
+            except Exception:
+                pass
+
+    def fade_out(i=0):
+        try:
+            app.attributes('-alpha', max(0.0, 1.0 - i / steps))
+        except Exception:
+            pass
+        if i < steps:
+            app.after(15, lambda: fade_out(i + 1))
+        else:
+            _swap()
+            fade_in(0)
+
+    def fade_in(i=0):
+        try:
+            app.attributes('-alpha', min(1.0, i / steps))
+        except Exception:
+            pass
+        if i < steps:
+            app.after(15, lambda: fade_in(i + 1))
+        else:
+            _call_shown()
+
+    fade_out(0)
 

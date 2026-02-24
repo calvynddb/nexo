@@ -98,17 +98,17 @@ class StudentsView(ctk.CTkFrame):
         goto_frame = ctk.CTkFrame(left_ctrl, fg_color="transparent")
         goto_frame.pack(side="left", padx=(15, 0))
         
-        ctk.CTkLabel(goto_frame, text="Go to:", font=get_font(10), text_color=TEXT_MUTED).pack(side="left", padx=(0, 5))
+        ctk.CTkLabel(goto_frame, text="Go to:", font=get_font(12), text_color=TEXT_MUTED).pack(side="left", padx=(0, 5))
         
         self.page_entry = ctk.CTkEntry(goto_frame, width=50, height=30, 
                                        fg_color="#2A1F3D", border_color=BORDER_COLOR,
-                                       text_color=TEXT_PRIMARY, font=get_font(10))
+                                       text_color=TEXT_PRIMARY, font=get_font(12))
         self.page_entry.pack(side="left", padx=(0, 5))
         self.page_entry.bind("<Return>", lambda e: self.go_to_page())
         
         self.go_btn = ctk.CTkButton(goto_frame, text="Go", width=40, height=30,
                                     fg_color="#6d28d9", hover_color="#5b21b6",
-                                    text_color="white", font=get_font(10, True),
+                                    text_color="white", font=get_font(12, True),
                                     command=self.go_to_page)
         self.go_btn.pack(side="left")
         
@@ -118,7 +118,7 @@ class StudentsView(ctk.CTkFrame):
         
         # entry count label
         self.entry_count_label = ctk.CTkLabel(right_ctrl, text="Showing 0 of 0 entries", 
-                                             font=get_font(11), text_color=TEXT_MUTED)
+                                             font=get_font(13), text_color=TEXT_MUTED)
         self.entry_count_label.pack(side="left", padx=0)
 
         # bind configure event to update page size dynamically
@@ -133,8 +133,8 @@ class StudentsView(ctk.CTkFrame):
         self.tree.tag_configure('hover', background="#6d5a8a", foreground="#ffffff")
         
         # button-style tags for action columns
-        self.tree.tag_configure('action_button', foreground=ACCENT_COLOR, font=get_font(10, True), background=PANEL_COLOR)
-        self.tree.tag_configure('action_button_delete', foreground="#ff6b6b", font=get_font(10, True), background=PANEL_COLOR)
+        self.tree.tag_configure('action_button', foreground=ACCENT_COLOR, font=get_font(12, True), background=PANEL_COLOR)
+        self.tree.tag_configure('action_button_delete', foreground="#ff6b6b", font=get_font(12, True), background=PANEL_COLOR)
         
         self.refresh_table()
 
@@ -288,7 +288,11 @@ class StudentsView(ctk.CTkFrame):
             prev_row = self._last_hover
             # check if the previous row still exists
             if prev_row in self.tree.get_children():
-                self.tree.item(prev_row, tags=())
+                items = self.tree.get_children()
+                if prev_row in items:
+                    idx = list(items).index(prev_row)
+                    tag = 'even' if idx % 2 == 0 else 'odd'
+                    self.tree.item(prev_row, tags=(tag,))
         # set hover tag as the only tag for this row
         self.tree.item(row, tags=('hover',))
         self._last_hover = row
@@ -431,11 +435,15 @@ class StudentsView(ctk.CTkFrame):
         text_frame = ctk.CTkFrame(header_inner, fg_color="transparent")
         text_frame.pack(side="left", fill="x", expand=True)
         ctk.CTkLabel(text_frame, text=name, font=get_font(16, True), wraplength=550, justify="left", anchor="w").pack(fill="x", anchor="w")
-        ctk.CTkLabel(text_frame, text=f"ID: {student.get('id', '')}", text_color=TEXT_MUTED, font=get_font(11), anchor="w").pack(fill="x", anchor="w", pady=(4, 0))
+        ctk.CTkLabel(text_frame, text=f"ID: {student.get('id', '')}", text_color=TEXT_MUTED, font=get_font(13), anchor="w").pack(fill="x", anchor="w", pady=(4, 0))
+
+        # action buttons frame - packed with side="bottom" first to guarantee visibility
+        btn_frame = ctk.CTkFrame(container, fg_color="transparent")
+        btn_frame.pack(side="bottom", fill="x", pady=(15, 0))
 
         # info card with scrollable content
         info_card = DepthCard(container, fg_color=PANEL_COLOR, corner_radius=12, border_width=2, border_color=BORDER_COLOR)
-        info_card.pack(fill="both", expand=True, pady=(0, 15))
+        info_card.pack(fill="both", expand=True)
 
         info_scroll = ctk.CTkScrollableFrame(info_card, fg_color="transparent")
         info_scroll.pack(fill="both", expand=True, padx=15, pady=15)
@@ -460,8 +468,6 @@ class StudentsView(ctk.CTkFrame):
         add_info_row("College:", college_name)
 
         # action buttons - only show if authenticated
-        btn_frame = ctk.CTkFrame(container, fg_color="transparent")
-        btn_frame.pack(fill="x")
 
         def _edit():
             profile_window.destroy()
@@ -478,7 +484,7 @@ class StudentsView(ctk.CTkFrame):
             ctk.CTkButton(btn_frame, text="Delete", command=_delete, fg_color="#c41e3a", text_color="white", font=FONT_BOLD, height=40).pack(side="left", fill="x", expand=True, padx=(5, 0))
         else:
             # show message prompting login
-            login_msg = ctk.CTkLabel(btn_frame, text="🔒 Log in to edit or delete", font=get_font(11), text_color=TEXT_MUTED)
+            login_msg = ctk.CTkLabel(btn_frame, text="🔒 Log in to edit or delete", font=get_font(13), text_color=TEXT_MUTED)
             login_msg.pack(fill="x", pady=10)
 
     def _edit_student(self, student_id):

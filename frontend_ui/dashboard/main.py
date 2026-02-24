@@ -131,7 +131,7 @@ class DashboardFrame(ctk.CTkFrame):
             fg_color="#2a1f35",
             text_color=TEXT_PRIMARY,
             hover_color="#3a2f45",
-            font=get_font(11, True),
+            font=get_font(13, True),
             corner_radius=8,
             height=45,
             border_width=0,
@@ -148,7 +148,7 @@ class DashboardFrame(ctk.CTkFrame):
             fg_color="#2a1f35",
             text_color=TEXT_PRIMARY,
             hover_color="#3a2f45",
-            font=get_font(11, True),
+            font=get_font(13, True),
             corner_radius=8,
             height=45,
             border_width=0,
@@ -165,7 +165,7 @@ class DashboardFrame(ctk.CTkFrame):
             fg_color="#2a1f35",
             text_color=TEXT_PRIMARY,
             hover_color="#3a2f45",
-            font=get_font(11, True),
+            font=get_font(13, True),
             corner_radius=8,
             height=45,
             border_width=0,
@@ -183,6 +183,14 @@ class DashboardFrame(ctk.CTkFrame):
                                       font=get_font(12, True),
                                       height=45, width=100, command=self.handle_login_click)
         self.auth_btn.pack(side="left", padx=0)
+
+        # gear/admin button - only visible when logged in
+        self._gear_icon = get_icon("settings", size=20, fallback_color=ACCENT_COLOR)
+        self.gear_btn = ctk.CTkButton(right_frame, text="", image=self._gear_icon,
+                                      width=45, height=45, fg_color="#2a1f35",
+                                      hover_color="#3a2f45", border_width=0,
+                                      command=self.open_admin_panel)
+        # packed/forgotten dynamically by update_auth_button
         
         # update auth button state
         self.update_auth_button()
@@ -352,6 +360,132 @@ class DashboardFrame(ctk.CTkFrame):
             else:
                 self.views[self.current_view].filter_table(query)
 
+    def open_admin_panel(self):
+        """Open admin management panel for registering admins and changing credentials."""
+        from frontend_ui.ui import DepthCard
+        from backend import load_csv, save_csv
+
+        panel = ctk.CTkToplevel(self)
+        panel.title("Admin Management")
+        panel.geometry("480x560")
+        panel.configure(fg_color=BG_COLOR)
+        panel.attributes('-topmost', True)
+        panel.grab_set()
+        panel.focus_force()
+        panel.update_idletasks()
+        x = (panel.winfo_screenwidth() // 2) - (panel.winfo_width() // 2)
+        y = (panel.winfo_screenheight() // 2) - (panel.winfo_height() // 2)
+        panel.geometry(f"+{x}+{y}")
+
+        container = ctk.CTkFrame(panel, fg_color="transparent")
+        container.pack(fill="both", expand=True, padx=20, pady=20)
+
+        card = DepthCard(container, fg_color=PANEL_COLOR, corner_radius=12, border_width=2, border_color=BORDER_COLOR)
+        card.pack(fill="both", expand=True)
+
+        scroll = ctk.CTkScrollableFrame(card, fg_color="transparent")
+        scroll.pack(fill="both", expand=True, padx=16, pady=16)
+
+        ctk.CTkLabel(scroll, text="Admin Management", font=get_font(18, True)).pack(anchor="w", pady=(0, 20))
+
+        # --- register new admin ---
+        ctk.CTkLabel(scroll, text="Register New Admin", font=get_font(14, True), text_color=ACCENT_COLOR).pack(anchor="w", pady=(0, 8))
+
+        def _make_entry(parent, placeholder):
+            e = ctk.CTkEntry(parent, placeholder_text=placeholder, height=38,
+                             fg_color="#2A1F3D", border_color=BORDER_COLOR, text_color=TEXT_PRIMARY)
+            e.pack(fill="x", pady=(0, 8))
+            return e
+
+        reg_user = _make_entry(scroll, "Username")
+        reg_pass = ctk.CTkEntry(scroll, placeholder_text="Password", show="*", height=38,
+                                fg_color="#2A1F3D", border_color=BORDER_COLOR, text_color=TEXT_PRIMARY)
+        reg_pass.pack(fill="x", pady=(0, 8))
+        reg_conf = ctk.CTkEntry(scroll, placeholder_text="Confirm password", show="*", height=38,
+                                fg_color="#2A1F3D", border_color=BORDER_COLOR, text_color=TEXT_PRIMARY)
+        reg_conf.pack(fill="x", pady=(0, 12))
+
+        def _register():
+            uname = reg_user.get().strip()
+            pwd   = reg_pass.get()
+            conf  = reg_conf.get()
+            if not all([uname, pwd, conf]):
+                self.controller.show_custom_dialog("Error", "Please fill all fields.", dialog_type="error")
+                return
+            if pwd != conf:
+                self.controller.show_custom_dialog("Error", "Passwords do not match.", dialog_type="error")
+                return
+            if len(pwd) < 6:
+                self.controller.show_custom_dialog("Error", "Password must be at least 6 characters.", dialog_type="error")
+                return
+            try:
+                existing = load_csv('user')
+                if any(u.get('username') == uname for u in existing):
+                    self.controller.show_custom_dialog("Error", f"Username '{uname}' is already taken.", dialog_type="error")
+                    return
+                existing.append({'name': '', 'username': uname, 'email': '', 'password': pwd})
+                save_csv('user', existing)
+            except Exception as e:
+                self.controller.show_custom_dialog("Error", f"Could not save: {e}", dialog_type="error")
+                return
+            for w in [reg_user, reg_pass, reg_conf]:
+                w.delete(0, "end")
+            self.controller.show_custom_dialog("Success", f"Admin '{uname}' registered successfully.")
+
+        ctk.CTkButton(scroll, text="Register", height=38, font=get_font(13, True),
+                      fg_color=ACCENT_COLOR, text_color="white", hover_color="#7C3AED",
+                      command=_register).pack(fill="x", pady=(0, 20))
+
+        # divider
+        ctk.CTkFrame(scroll, height=2, fg_color=BORDER_COLOR).pack(fill="x", pady=(0, 20))
+
+        # --- change credentials ---
+        ctk.CTkLabel(scroll, text="Change Credentials", font=get_font(14, True), text_color=ACCENT_COLOR).pack(anchor="w", pady=(0, 8))
+
+        chg_user = _make_entry(scroll, "Username to update")
+        chg_old  = ctk.CTkEntry(scroll, placeholder_text="Current password", show="*", height=38,
+                                fg_color="#2A1F3D", border_color=BORDER_COLOR, text_color=TEXT_PRIMARY)
+        chg_old.pack(fill="x", pady=(0, 8))
+        chg_new  = ctk.CTkEntry(scroll, placeholder_text="New password", show="*", height=38,
+                                fg_color="#2A1F3D", border_color=BORDER_COLOR, text_color=TEXT_PRIMARY)
+        chg_new.pack(fill="x", pady=(0, 8))
+        chg_conf = ctk.CTkEntry(scroll, placeholder_text="Confirm new password", show="*", height=38,
+                                fg_color="#2A1F3D", border_color=BORDER_COLOR, text_color=TEXT_PRIMARY)
+        chg_conf.pack(fill="x", pady=(0, 12))
+
+        def _change_creds():
+            uname   = chg_user.get().strip()
+            old_pwd = chg_old.get()
+            new_pwd = chg_new.get()
+            conf    = chg_conf.get()
+            if not all([uname, old_pwd, new_pwd, conf]):
+                self.controller.show_custom_dialog("Error", "Please fill all fields.", dialog_type="error")
+                return
+            if new_pwd != conf:
+                self.controller.show_custom_dialog("Error", "New passwords do not match.", dialog_type="error")
+                return
+            if len(new_pwd) < 6:
+                self.controller.show_custom_dialog("Error", "Password must be at least 6 characters.", dialog_type="error")
+                return
+            try:
+                users = load_csv('user')
+                match = next((u for u in users if u.get('username') == uname and u.get('password') == old_pwd), None)
+                if not match:
+                    self.controller.show_custom_dialog("Error", "Username or current password is incorrect.", dialog_type="error")
+                    return
+                match['password'] = new_pwd
+                save_csv('user', users)
+            except Exception as e:
+                self.controller.show_custom_dialog("Error", f"Could not update: {e}", dialog_type="error")
+                return
+            for w in [chg_user, chg_old, chg_new, chg_conf]:
+                w.delete(0, "end")
+            self.controller.show_custom_dialog("Success", "Credentials updated successfully.")
+
+        ctk.CTkButton(scroll, text="Update Password", height=38, font=get_font(13, True),
+                      fg_color="#6d28d9", text_color="white", hover_color="#5b21b6",
+                      command=_change_creds).pack(fill="x", pady=(0, 8))
+
     def open_settings(self):
         """Open Settings window."""
         settings_window = ctk.CTkToplevel(self)
@@ -423,18 +557,7 @@ class DashboardFrame(ctk.CTkFrame):
                      fg_color=ACCENT_COLOR, text_color=TEXT_PRIMARY, hover_color="#7C3AED").pack(fill="x", pady=6)
         ctk.CTkButton(frame, text="Export Data", height=40, font=FONT_MAIN,
                      fg_color=ACCENT_COLOR, text_color=TEXT_PRIMARY, hover_color="#7C3AED").pack(fill="x", pady=6)
-    
-    def handle_logout(self):
-        """Handle logout."""
-        self.controller.show_custom_dialog("Confirm Logout", "Are you sure you want to logout?", "yesno", 
-                                          callback=self._confirm_logout)
-    
-    def _confirm_logout(self, result):
-        """Confirm logout and transition to login screen."""
-        if result:
-            self.controller.logged_in = False
-            create_backups()
-            self.controller.show_frame(LoginFrame)
+
     def apply_theme(self, choice: str):
         """Apply appearance mode safely and notify all listeners."""
         try:
@@ -471,20 +594,23 @@ class DashboardFrame(ctk.CTkFrame):
                                           callback=self._confirm_logout)
     
     def _confirm_logout(self, result):
-        """Callback for logout confirmation."""
+        """Confirm logout and stay on dashboard in view-only mode."""
         if result:
             create_backups()
             self.controller.logged_in = False
-            self.controller.show_frame(LoginFrame)
+            self.update_button_states()
+            self.update_auth_button()
 
     def update_auth_button(self):
         """Update the auth button based on login state."""
         if self.controller.logged_in:
             self.auth_btn.configure(text="Logout", fg_color="#c41e3a", hover_color="#a01830", 
                                     command=self.handle_logout)
+            self.gear_btn.pack(side="left", padx=(8, 0))
         else:
             self.auth_btn.configure(text="Login", fg_color=ACCENT_COLOR, hover_color="#7C3AED", 
                                     command=self.handle_login_click)
+            self.gear_btn.pack_forget()
 
     def on_theme_change(self, mode: str):
         """Callback when theme changes - refreshes all visible views."""

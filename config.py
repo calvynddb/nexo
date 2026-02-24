@@ -35,11 +35,11 @@ ctk.set_default_color_theme("dark-blue")  # using dark-blue theme, but will over
 
 # --- fonts ---
 # century gothic - clean, modern font for professional look
-FONT_MAIN = ("Century Gothic", 13)
-FONT_BOLD = ("Century Gothic", 13, "bold")
+FONT_MAIN = ("Century Gothic", 14)
+FONT_BOLD = ("Century Gothic", 14, "bold")
 FONT_FAMILY = "Century Gothic"
 
-def get_font(size: int = 13, bold: bool = False):
+def get_font(size: int = 14, bold: bool = False):
     """Return a font tuple for widgets: (family, size[, 'bold'])."""
     return (FONT_FAMILY, size, "bold") if bold else (FONT_FAMILY, size)
 
@@ -56,18 +56,20 @@ PANEL_SELECTED = "#2d1f45"  # subtle purple selection highlight
 FILES = {
     'college': data_path('colleges.csv'),
     'program': data_path('programs.csv'),
-    'student': data_path('students.csv')
+    'student': data_path('students.csv'),
+    'user': data_path('users.csv'),
 }
 
 FIELDS = {
     'college': ['code', 'name'],
     'program': ['code', 'name', 'college'],
     'student': ['id', 'firstname', 'lastname', 'program', 'year', 'gender'],
+    'user': ['name', 'username', 'email', 'password'],
 }
 
 # --- window dimensions ---
 WINDOW_WIDTH = 1400
-WINDOW_HEIGHT = 900
+WINDOW_HEIGHT = 940
 
 # --- chart colors --- subtle purple palette
 COLOR_PALETTE = [

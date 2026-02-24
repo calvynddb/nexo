@@ -41,18 +41,16 @@ class LoginFrame(ctk.CTkFrame):
             ctk.CTkLabel(logo_frame, text="nexo", font=get_font(32, True), text_color=ACCENT_COLOR).pack()
 
         ctk.CTkLabel(card, text="nexo", font=get_font(28, True), text_color=TEXT_PRIMARY).pack(pady=(0, 8))
-        ctk.CTkLabel(card, text="Please sign in to access the dashboard", font=get_font(12), text_color=TEXT_MUTED).pack(pady=(0, 30))
+        ctk.CTkLabel(card, text="Please login to access the administrative features", font=get_font(12), text_color=TEXT_MUTED).pack(pady=(0, 30))
 
         self.username_entry = self.create_input(card, "Username", "👤  Enter your username")
         self.password_entry = self.create_input(card, "Password", "🔒  Enter your password", show="*")
+        self.username_entry.bind("<Return>", lambda e: self.handle_login())
+        self.password_entry.bind("<Return>", lambda e: self.handle_login())
 
         # templated login function with enhanced button
         ctk.CTkButton(card, text="Sign In", font=get_font(13, True), fg_color=ACCENT_COLOR, text_color="white", hover_color="#6d5a8a", height=48, corner_radius=10, 
-                      command=self.handle_login).pack(fill="x", padx=50, pady=(22, 12))
-        
-        ctk.CTkLabel(card, text="──────── Or ────────", text_color=TEXT_MUTED, font=get_font(11)).pack(pady=12)
-        ctk.CTkButton(card, text="Register New Administrator", font=get_font(12, True), fg_color="transparent", text_color=ACCENT_COLOR, border_width=2, border_color=ACCENT_COLOR, hover_color=ACCENT_COLOR, height=48, corner_radius=10,
-                      command=self.handle_register).pack(fill="x", padx=50, pady=(0, 40))
+                      command=self.handle_login).pack(fill="x", padx=50, pady=(22, 40))
 
     def on_frame_shown(self):
         """Clear login fields when frame is shown (e.g. after logout)."""
@@ -68,15 +66,29 @@ class LoginFrame(ctk.CTkFrame):
         return entry
 
     def handle_login(self):
-        user = self.username_entry.get()
+        user = self.username_entry.get().strip()
         pwd = self.password_entry.get()
         
         if not user or not pwd:
             self.controller.show_custom_dialog("Error", "Please enter username and password", dialog_type="error")
             return
         
-        # simple authentication (for demo)
-        if user == "admin" and pwd == "admin":
+        # check built-in admin account first
+        authenticated = (user == "admin" and pwd == "admin")
+        
+        # check registered users in users.csv
+        if not authenticated:
+            try:
+                from backend import load_csv
+                users = load_csv('user')
+                authenticated = any(
+                    u.get('username') == user and u.get('password') == pwd
+                    for u in users
+                )
+            except Exception:
+                pass
+        
+        if authenticated:
             self.controller.logged_in = True
             from frontend_ui.dashboard import DashboardFrame
             self.controller.show_frame(DashboardFrame)
@@ -146,6 +158,19 @@ class LoginFrame(ctk.CTkFrame):
             
             if len(password) < 6:
                 self.controller.show_custom_dialog("Error", "Password must be at least 6 characters", dialog_type="error")
+                return
+            
+            # check for duplicate username
+            try:
+                from backend import load_csv, save_csv
+                existing = load_csv('user')
+                if any(u.get('username') == username for u in existing):
+                    self.controller.show_custom_dialog("Error", f"Username '{username}' is already taken.", dialog_type="error")
+                    return
+                existing.append({'name': name, 'username': username, 'email': email, 'password': password})
+                save_csv('user', existing)
+            except Exception as e:
+                self.controller.show_custom_dialog("Error", f"Could not save user: {e}", dialog_type="error")
                 return
             
             self.controller.show_custom_dialog("Success", "Administrator registered successfully! Please log in.")

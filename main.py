@@ -12,55 +12,40 @@ from frontend_ui.ui.utils import show_dialog
 
 class App(ctk.CTk):
     """Main application window."""
-    
+
     def __init__(self):
         super().__init__()
         self.title("nexo")
         self.geometry(f"{WINDOW_WIDTH}x{WINDOW_HEIGHT}")
-        
-        # authentication state
         self.logged_in = False
+        self._load_data()
+        self._build_frames()
+        self.current_frame = None
+        self.show_frame(DashboardFrame, fade=False)
 
-        # initialize data files
+    def _load_data(self):
+        """Initialise CSV files and load all data, falling back to empty lists on error."""
         init_files()
+        for key, attr in (('college', 'colleges'), ('program', 'programs'), ('student', 'students')):
+            try:
+                setattr(self, attr, load_csv(key))
+            except Exception:
+                import traceback
+                traceback.print_exc()
+                setattr(self, attr, [])
 
-        # load data (guarded)
-        try:
-            self.colleges = load_csv('college')
-        except Exception:
-            import traceback
-            traceback.print_exc()
-            self.colleges = []
-        try:
-            self.programs = load_csv('program')
-        except Exception:
-            import traceback
-            traceback.print_exc()
-            self.programs = []
-        try:
-            self.students = load_csv('student')
-        except Exception:
-            import traceback
-            traceback.print_exc()
-            self.students = []
-
-        # create container
+    def _build_frames(self):
+        """Create the root container and instantiate all application frames."""
         self.container = ctk.CTkFrame(self)
         self.container.pack(fill="both", expand=True)
         self.container.grid_rowconfigure(0, weight=1)
         self.container.grid_columnconfigure(0, weight=1)
-
-        # create frames
         self.frames = {}
         for F in (LoginFrame, DashboardFrame):
             frame = F(self.container, self)
             self.frames[F] = frame
-            # use place so we can animate sliding transitions between frames
+            # use place so frames stack and can be swapped by lifting
             frame.place(relx=0, rely=0, relwidth=1, relheight=1)
-
-        # show dashboard frame first (without fade animation)
-        self.current_frame = None
-        self.show_frame(DashboardFrame, fade=False)
 
     def show_custom_dialog(self, title, message, dialog_type="info", callback=None):
         """Show a custom styled dialog matching the app theme.
@@ -71,87 +56,40 @@ class App(ctk.CTk):
         return show_dialog(self, title, message, dialog_type, callback)
 
     def show_frame(self, cont, fade=True):
-        """Show a specific frame."""
+        """Show a specific frame, optionally with a fade transition."""
         new_frame = self.frames[cont]
-        old_frame = getattr(self, 'current_frame', None)
-        if old_frame is new_frame:
+        if self.current_frame is new_frame:
             return
+        self.current_frame = new_frame
 
-        # fast window fade (alpha) transition: fade out, swap frames, fade in
-        if not fade:
-            # skip fade animation on launch
-            new_frame.lift()
-            self.current_frame = new_frame
-            from frontend_ui.ui.utils import apply_button_hover
-            try:
-                apply_button_hover(new_frame)
-            except Exception:
-                pass
-            # call on_frame_shown callback if it exists
+        def _on_shown():
             if hasattr(new_frame, 'on_frame_shown'):
                 try:
                     new_frame.on_frame_shown()
                 except Exception:
                     pass
+
+        from frontend_ui.ui.utils import apply_button_hover, fade_transition
+
+        if not fade:
+            new_frame.lift()
+            try:
+                apply_button_hover(new_frame)
+            except Exception:
+                pass
+            _on_shown()
             return
 
         try:
-            steps = max(3, int(180 // 15))
-
-            def fade_out(i=0):
-                a = 1.0 - (i / steps)
-                try:
-                    self.attributes('-alpha', max(0.0, a))
-                except Exception:
-                    pass
-                if i < steps:
-                    self.after(15, lambda: fade_out(i + 1))
-                else:
-                    # swap frames while invisible
-                    try:
-                        new_frame.lift()
-                        self.current_frame = new_frame
-                        from frontend_ui.ui.utils import apply_button_hover
-                        try:
-                            apply_button_hover(new_frame)
-                        except Exception:
-                            pass
-                    except Exception:
-                        pass
-                    fade_in(0)
-
-            def fade_in(i=0):
-                a = (i / steps)
-                try:
-                    self.attributes('-alpha', min(1.0, a))
-                except Exception:
-                    pass
-                if i < steps:
-                    self.after(15, lambda: fade_in(i + 1))
-                else:
-                    # call on_frame_shown callback if it exists
-                    if hasattr(new_frame, 'on_frame_shown'):
-                        try:
-                            new_frame.on_frame_shown()
-                        except Exception:
-                            pass
-
-            fade_out(0)
+            fade_transition(self, new_frame, on_shown=_on_shown)
         except Exception:
             # fallback to instant raise
             new_frame.tkraise()
             try:
-                from frontend_ui.ui.utils import apply_button_hover
                 apply_button_hover(new_frame)
             except Exception:
                 pass
-            self.current_frame = new_frame
-            # call on_frame_shown callback if it exists
-            if hasattr(new_frame, 'on_frame_shown'):
-                try:
-                    new_frame.on_frame_shown()
-                except Exception:
-                    pass
+            _on_shown()
 
 
 def main():

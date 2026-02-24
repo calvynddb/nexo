@@ -111,7 +111,7 @@ class SearchableComboBox(ctk.CTkFrame):
             btn = ctk.CTkButton(self.list_frame, text=opt, anchor="w",
                                fg_color="transparent", text_color=TEXT_PRIMARY,
                                hover_color="#2A1F3D", height=30, corner_radius=0,
-                               font=get_font(11), command=lambda o=opt: self._select_option(o))
+                               font=get_font(13), command=lambda o=opt: self._select_option(o))
             btn.pack(fill="x", padx=1, pady=1)
     
     def _select_option(self, option):
@@ -201,7 +201,7 @@ class StyledComboBox(ctk.CTkFrame):
             btn = ctk.CTkButton(list_frame, text=val, anchor="w",
                                fg_color="transparent", text_color=TEXT_PRIMARY,
                                hover_color="#2A1F3D", height=30, corner_radius=0,
-                               font=get_font(11), command=lambda v=val: self._select_option(v))
+                               font=get_font(13), command=lambda v=val: self._select_option(v))
             btn.pack(fill="x", padx=1, pady=1)
     
     def _select_option(self, value):
