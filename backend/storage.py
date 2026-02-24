@@ -4,14 +4,27 @@ CSV storage and file operations.
 
 import csv
 import os
-from config import FILES, FIELDS
+import sys
+import shutil
+from config import FILES, FIELDS, resource_path
 
 
 def init_files():
-    """Initialize CSV files with headers if they don't exist."""
-    for key, filename in FILES.items():
-        if not os.path.exists(filename):
-            with open(filename, 'w', newline='') as f:
+    """Initialize CSV files with headers if they don't exist.
+    
+    When running as a PyInstaller bundle, copies bundled CSV seed files
+    to the writable data directory on first run.
+    """
+    for key, filepath in FILES.items():
+        if not os.path.exists(filepath):
+            # If running frozen, try to copy the bundled seed CSV first
+            if getattr(sys, 'frozen', False):
+                bundled = resource_path(os.path.basename(filepath))
+                if os.path.exists(bundled):
+                    shutil.copy2(bundled, filepath)
+                    continue
+            # Otherwise create empty CSV with headers
+            with open(filepath, 'w', newline='') as f:
                 writer = csv.DictWriter(f, fieldnames=FIELDS[key])
                 writer.writeheader()
 

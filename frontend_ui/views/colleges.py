@@ -7,7 +7,7 @@ from tkinter import ttk
 
 from config import (
     FONT_MAIN, FONT_BOLD, BG_COLOR, PANEL_COLOR, ACCENT_COLOR, 
-    TEXT_MUTED, BORDER_COLOR, COLOR_PALETTE, TEXT_PRIMARY
+    TEXT_MUTED, BORDER_COLOR, COLOR_PALETTE, TEXT_PRIMARY, FILES
 )
 from config import get_font
 from frontend_ui.ui import DepthCard, placeholder_image, setup_treeview_style, get_icon
@@ -850,7 +850,7 @@ class CollegesView(ctk.CTkFrame):
                 # Load existing codes
                 try:
                     import csv as csv_module
-                    with open('colleges.csv', 'r', encoding='utf-8') as existing:
+                    with open(FILES['college'], 'r', encoding='utf-8') as existing:
                         existing_reader = csv_module.DictReader(existing)
                         for row in existing_reader:
                             existing_codes.add(row['code'])
@@ -882,7 +882,7 @@ class CollegesView(ctk.CTkFrame):
                 
                 # Append to CSV file
                 if rows_to_add:
-                    with open('colleges.csv', 'a', newline='', encoding='utf-8') as f:
+                    with open(FILES['college'], 'a', newline='', encoding='utf-8') as f:
                         writer = csv.DictWriter(f, fieldnames=['code', 'name'])
                         for row in rows_to_add:
                             writer.writerow({

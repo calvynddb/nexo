@@ -3,6 +3,31 @@ Configuration and Constants for EduManage SIS
 """
 
 import customtkinter as ctk
+import sys
+import os
+
+# --- Path Helpers for PyInstaller bundling ---
+def resource_path(relative_path):
+    """Get absolute path to a bundled read-only resource (assets, icons, etc.).
+    Works both in development and in a PyInstaller --onefile bundle.
+    """
+    if getattr(sys, 'frozen', False):
+        base = sys._MEIPASS
+    else:
+        base = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(base, relative_path)
+
+
+def data_path(relative_path):
+    """Get absolute path to a writable data file (CSVs, user data).
+    In bundled mode, resolves relative to the directory containing the .exe.
+    In development, resolves relative to the project root.
+    """
+    if getattr(sys, 'frozen', False):
+        base = os.path.dirname(sys.executable)
+    else:
+        base = os.path.dirname(os.path.abspath(__file__))
+    return os.path.join(base, relative_path)
 
 # --- Theme Setup ---
 ctk.set_appearance_mode("dark")
@@ -29,9 +54,9 @@ PANEL_SELECTED = "#2d1f45"  # Subtle purple selection highlight
 
 # --- CSV Files and Fields ---
 FILES = {
-    'college': 'colleges.csv',
-    'program': 'programs.csv',
-    'student': 'students.csv'
+    'college': data_path('colleges.csv'),
+    'program': data_path('programs.csv'),
+    'student': data_path('students.csv')
 }
 
 FIELDS = {

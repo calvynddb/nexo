@@ -5,7 +5,7 @@ Utility functions for UI styling and assets.
 import customtkinter as ctk
 import tkinter as tk
 from pathlib import Path
-from config import PANEL_COLOR, TEXT_MUTED, BORDER_COLOR, PANEL_SELECTED, get_font
+from config import PANEL_COLOR, TEXT_MUTED, BORDER_COLOR, PANEL_SELECTED, get_font, resource_path
 
 
 # Icon cache to avoid reloading
@@ -30,7 +30,7 @@ def get_icon(name: str, size: int = 36, fallback_color: str = "#6d28d9"):
         return _icon_cache[cache_key]
     
     # Try to load base icon first and scale it (prioritize custom icons)
-    base_icon_path = Path("assets/icons") / f"{name}.png"
+    base_icon_path = Path(resource_path(f"assets/icons/{name}.png"))
     if base_icon_path.exists():
         try:
             from PIL import Image
@@ -44,7 +44,7 @@ def get_icon(name: str, size: int = 36, fallback_color: str = "#6d28d9"):
             print(f"Error loading icon {base_icon_path}: {e}")
     
     # Fallback: try to load PNG icon with exact size
-    icon_path = Path("assets/icons") / f"{name}_{size}.png"
+    icon_path = Path(resource_path(f"assets/icons/{name}_{size}.png"))
     
     if icon_path.exists():
         try:
@@ -69,7 +69,7 @@ def get_main_logo(size: int = 56):
     Returns:
         CTkImage
     """
-    logo_path = Path("assets") / "Main Logo.png"
+    logo_path = Path(resource_path("assets/Main Logo.png"))
     
     if logo_path.exists():
         try:
