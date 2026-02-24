@@ -43,7 +43,7 @@ nexo is a desktop student information system built with Python and CustomTkinter
 
 The interface opens on a dashboard with three views — Students, Programs, and Colleges — each backed by paginated, sortable tables. Tables support real-time search that filters across all visible fields as you type, and clicking any column header toggles ascending/descending sort with numeric-aware ordering for year fields. Clicking a student row opens a detail profile popup with quick edit and delete actions. The Programs view also displays a donut chart (via matplotlib) showing enrollment distribution by college alongside a top-enrolled sidebar.
 
-All write operations — adding, editing, deleting, and bulk CSV import — are gated behind admin authentication. SHA-256 hashed credentials are stored in `users.csv`, and new administrators can be registered directly from the login screen. A guest mode is available at launch that grants full read-only access to all three views without requiring a login. The app packages into a single portable `.exe` via PyInstaller, seeding its CSV data files on first run.
+All write operations — adding, editing, deleting, and bulk CSV import — are gated behind admin authentication. Credentials are stored in `users.csv`; additional administrators can be registered through the gear icon in the dashboard header after logging in. Logging out returns to a read-only guest view without redirecting to the login screen. The app packages into a single portable `.exe` via PyInstaller, seeding its CSV data files on first run.
 
 ---
 
@@ -64,10 +64,9 @@ All write operations — adding, editing, deleting, and bulk CSV import — are 
 
 ### Prerequisites
 
-- Python **3.13** or later
-- pip
-
-> Python 3.14 has a known NumPy DLL incompatibility with PyInstaller — use 3.13 if you plan to build an executable.
+- Python **3.13** or later (Python 3.14 has a known NumPy/PyInstaller incompatibility)
+- `customtkinter`, `Pillow`, `matplotlib`, `numpy` — install via `pip install -r requirements.txt`
+- `pyinstaller` — only required for building the executable
 
 ### Installation
 
@@ -137,7 +136,7 @@ nexo/
 │
 ├── frontend_ui/                     # Presentation layer
 │   ├── auth/
-│   │   └── login.py                 # LoginFrame — sign in, register, guest access
+│   │   └── login.py                 # LoginFrame — sign in, guest access
 │   ├── dashboard/
 │   │   └── main.py                  # DashboardFrame — topbar, nav tabs, settings modal
 │   ├── views/
@@ -186,11 +185,12 @@ The project follows a **layered architecture** with clear separation between dat
 
 **Key design decisions:**
 
-1. **Backend / Frontend split** — The `backend/` package has zero UI imports; it only deals with CSV data, validation, and business logic.
-2. **CRUD, Search, Sort classes** — Each entity (Student, Program, College) has its own dedicated class for each operation type.
-3. **Centralized config** — All colors, fonts, file paths, and theme state live in `config.py`.
-4. **Custom dialog system** — A single `show_custom_dialog()` replaces all native message boxes with themed modal windows.
-5. **Path helpers** — `resource_path()` and `data_path()` enable seamless PyInstaller bundling.
+1. 𝗕𝗮𝗰𝗸𝗲𝗻𝗱 / 𝗙𝗿𝗼𝗻𝗴𝗲𝗻𝗱 𝘀𝗽𝗹𝗶𝗴 — The `backend/` package has zero UI imports; it only deals with CSV data, validation, and business logic.
+2. 𝗖𝗥𝗨𝗗, 𝗦𝗲𝗮𝗿𝗰𝗵, 𝗦𝗼𝗿𝗴 𝗰𝗹𝗮𝘀𝘀𝗲𝘀 — Each entity (Student, Program, College) has its own dedicated class for each operation type.
+3. 𝗖𝗲𝗻𝗴𝗿𝗮𝗹𝗶𝘇𝗲𝗱 𝗰𝗼𝗻𝗳𝗶𝗴 — All colors, fonts, file paths, and theme state live in `config.py`.
+4. 𝗖𝘂𝘀𝗴𝗼𝗺 𝗱𝗶𝗮𝗹𝗼𝗴 𝘀𝘆𝘀𝗴𝗲𝗺 — A single `show_custom_dialog()` replaces all native message boxes with themed modal windows.
+5. 𝗣𝗮𝗴𝗵 𝗵𝗲𝗹𝗽𝗲𝗿𝘀 — `resource_path()` and `data_path()` enable seamless PyInstaller bundling.
+6. 𝗔𝗱𝗺𝗶𝗻 𝗺𝗮𝗻𝗮𝗴𝗲𝗺𝗲𝗻𝗴 — Administrators are registered and credentials changed via a gear-icon panel in the dashboard header, visible only when logged in.
 
 ---
 
@@ -222,7 +222,7 @@ The project follows a **layered architecture** with clear separation between dat
 | `code` | Unique college code (e.g. `CCS`) |
 | `name` | Full college name — no digits allowed |
 
-**Relationships:** Student → Program → College (referential integrity enforced on delete).
+**Relationships:** Student → Program → College — deleting a program clears the `program` field on enrolled students; deleting a college clears the `college` field on affected programs (set-null cascade).
 
 ---
 

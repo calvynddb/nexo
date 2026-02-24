@@ -730,11 +730,15 @@ class ProgramsView(ctk.CTkFrame):
         # build warning message
         warning_parts = [f"Are you sure you want to delete program '{prog_code}'?"]
         if affected_students:
-            warning_parts.append(f"\n\n⚠ This will orphan {len(affected_students)} student(s) currently enrolled in this program.")
+            warning_parts.append(f"\n\n\u26a0 The program field will be cleared for {len(affected_students)} student(s) currently enrolled.")
         else:
             warning_parts.append("\n\nNo students will be affected.")
         
         if self.controller.show_custom_dialog("Confirm Delete", "".join(warning_parts), dialog_type="yesno"):
+            for s in self.controller.students:
+                if s.get('program') == prog_code:
+                    s['program'] = ''
+            save_csv('student', self.controller.students)
             self.controller.programs.remove(program)
             save_csv('program', self.controller.programs)
             self.refresh_table()

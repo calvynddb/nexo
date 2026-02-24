@@ -665,7 +665,7 @@ class StudentsView(ctk.CTkFrame):
         ctk.CTkLabel(form_frame, text="New Student Enrollment", font=get_font(16, True)).pack(pady=(0, 20))
         
         ctk.CTkLabel(form_frame, text="Student ID", font=FONT_BOLD).pack(anchor="w", pady=(10, 0))
-        id_entry = ctk.CTkEntry(form_frame, placeholder_text="e.g., 2025-1234", height=40)
+        id_entry = ctk.CTkEntry(form_frame, placeholder_text="e.g., 2024-0001", height=40)
         id_entry.pack(fill="x", pady=(0, 15))
         
         ctk.CTkLabel(form_frame, text="First Name", font=FONT_BOLD).pack(anchor="w", pady=(10, 0))
@@ -716,9 +716,10 @@ class StudentsView(ctk.CTkFrame):
             if not program:
                 return False, "Program must be selected"
             
-            # check ID format
-            if len(student_id) < 3:
-                return False, "Student ID must be at least 3 characters"
+            # check ID format: must be 202x-xxxx
+            import re
+            if not re.match(r'^202\d-\d{4}$', student_id):
+                return False, "Student ID must follow the format 202X-XXXX (e.g. 2024-0001)"
             
             # check for duplicate ID
             if any(s['id'] == student_id for s in self.controller.students):

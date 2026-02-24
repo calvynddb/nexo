@@ -12,9 +12,9 @@ def validate_student(record):
         if not record.get(k):
             return False, f"Missing field: {k}"
 
-    # id must not contain letters
-    if re.search(r'[A-Za-z]', record.get('id', '')):
-        return False, "Student ID cannot contain letters"
+    # id must match format 202x-xxxx (e.g. 2023-0001)
+    if not re.match(r'^202\d-\d{4}$', record.get('id', '')):
+        return False, "Student ID must follow the format 202X-XXXX (e.g. 2024-0001)"
 
     # names should not contain digits
     if re.search(r'\d', record.get('firstname', '')) or re.search(r'\d', record.get('lastname', '')):

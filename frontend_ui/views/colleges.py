@@ -498,17 +498,26 @@ class CollegesView(ctk.CTkFrame):
             college_obj = next((c for c in self.controller.colleges if c['code'] == college_code), None)
             if not college_obj:
                 return
-            affected_programs = [p for p in self.controller.programs if p['college'] == college_code]
-            affected_students = [s for s in self.controller.students if s.get('program', '') in [p['code'] for p in affected_programs]]
+            affected_programs = [p for p in self.controller.programs if p.get('college') == college_code]
+            affected_students = [s for s in self.controller.students if s.get('program', '') in {p['code'] for p in affected_programs}]
             warning_parts = [f"Are you sure you want to delete college '{college_code}'?"]
             if affected_programs:
-                warning_parts.append(f"\n\n⚠ This will orphan {len(affected_programs)} program(s).")
+                warning_parts.append(f"\n\n⚠ The college field will be cleared for {len(affected_programs)} program(s).")
             if affected_students:
-                warning_parts.append(f"⚠ This will also affect {len(affected_students)} student(s) enrolled in those programs.")
+                warning_parts.append(f" The program field will also be cleared for {len(affected_students)} enrolled student(s).")
             if not affected_programs and not affected_students:
                 warning_parts.append("\n\nNo programs or students will be affected.")
             if self.controller.show_custom_dialog("Confirm Delete", "".join(warning_parts), dialog_type="yesno"):
                 profile_window.destroy()
+                prog_codes = {p['code'] for p in self.controller.programs if p.get('college') == college_code}
+                for s in self.controller.students:
+                    if s.get('program') in prog_codes:
+                        s['program'] = ''
+                save_csv('student', self.controller.students)
+                for p in self.controller.programs:
+                    if p.get('college') == college_code:
+                        p['college'] = ''
+                save_csv('program', self.controller.programs)
                 self.controller.colleges.remove(college_obj)
                 save_csv('college', self.controller.colleges)
                 self.refresh_table()
@@ -716,13 +725,22 @@ class CollegesView(ctk.CTkFrame):
         # build warning message
         warning_parts = [f"Are you sure you want to delete college '{college['code']}'?"]
         if affected_programs:
-            warning_parts.append(f"\n\n⚠ This will orphan {len(affected_programs)} program(s).")
+            warning_parts.append(f"\n\n⚠ The college field will be cleared for {len(affected_programs)} program(s).")
         if affected_students:
-            warning_parts.append(f"⚠ This will also affect {len(affected_students)} student(s) enrolled in those programs.")
+            warning_parts.append(f" The program field will also be cleared for {len(affected_students)} enrolled student(s).")
         if not affected_programs and not affected_students:
             warning_parts.append("\n\nNo programs or students will be affected.")
         
         if self.controller.show_custom_dialog("Confirm Delete", "".join(warning_parts), dialog_type="yesno"):
+            prog_codes = {p['code'] for p in self.controller.programs if p.get('college') == college['code']}
+            for s in self.controller.students:
+                if s.get('program') in prog_codes:
+                    s['program'] = ''
+            save_csv('student', self.controller.students)
+            for p in self.controller.programs:
+                if p.get('college') == college['code']:
+                    p['college'] = ''
+            save_csv('program', self.controller.programs)
             self.controller.colleges.remove(college)
             save_csv('college', self.controller.colleges)
             self.refresh_table()
