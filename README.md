@@ -39,7 +39,7 @@
 
 ## Overview
 
-Nexo is a desktop student information system built with Python and CustomTkinter. It manages students, academic programs, and colleges through a dark-themed GUI backed entirely by CSV flat files — no database setup required. The app is structured around a strict backend/frontend split: the `backend/` package handles all data access, validation, and business logic with zero UI dependencies, while `frontend_ui/` is responsible solely for presentation.
+Nexo is a desktop student information system built with Python and CustomTkinter. All data lives in plain CSV files, which means no database, no server, nothing to set up. 
 
 The interface opens on a dashboard with three views — Students, Programs, and Colleges. Each view provides full **CRUDL** (Create, Read, Update, Delete, List) operations: records can be added individually or imported in bulk via CSV, edited in place through a detail popup, and deleted with a set-null cascade that keeps related records consistent. Tables support **search by fields** — a real-time filter that narrows results across all visible columns as you type — and **sort** on any column header, toggling ascending/descending order with numeric-aware comparison for year and ID fields. The Programs view also displays a donut chart (via matplotlib) showing enrollment distribution by college alongside a top-enrolled sidebar.
 
