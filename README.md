@@ -273,7 +273,3 @@ python -m PyInstaller --noconfirm --onefile --windowed ^
 The output at `dist/nexo.exe` (~38 MB) is fully self-contained. On first run it writes its CSV data files next to itself.
 
 ---
-
-<p align="center">
-  Made with ❤️ using Python and CustomTkinter
-</p>

@@ -38,6 +38,19 @@ class App(ctk.CTk):
         self._build_frames()
         self.current_frame = None
         self.show_frame(DashboardFrame, fade=False)
+        self.protocol("WM_DELETE_WINDOW", self._on_close)
+
+    def _on_close(self):
+        """Cancel all pending after() callbacks before destroying to suppress bgerror noise."""
+        try:
+            for after_id in self.tk.eval('after info').split():
+                try:
+                    self.after_cancel(after_id)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+        self.destroy()
 
     def _load_data(self):
         """Initialise CSV files and load all data, falling back to empty lists on error."""
